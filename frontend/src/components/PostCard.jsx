@@ -1,4 +1,4 @@
-
+import { BiSolidLike } from "react-icons/bi";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -65,7 +65,7 @@ export default function PostCard({
               onClick={() => onLike(post._id)}
               className="px-3 py-1 border rounded-md text-sm bg-white/10 text-white btn"
             >
-              ❤️ Like ({post.likes?.length || 0})
+              <BiSolidLike />  ({post.likes?.length || 0})
             </button>
 
             {/* FOLLOW/UNFOLLOW */}
