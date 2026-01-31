@@ -5,15 +5,14 @@ const User = require("../models/User");
 // CREATE POST
 exports.createPost = async (req, res) => {
   try {
-    const { title, content, mediaUrl, mediaType } = req.body;
+    const { title, content, media } = req.body;
     if (!title) return res.status(400).json({ message: "Title required" });
 
     const post = new Post({
       author: req.user._id,
       title,
       content,
-      mediaUrl,
-      mediaType
+      media: media || [] // Expecting array of {url, type}
     });
 
     await post.save();
@@ -27,7 +26,10 @@ exports.createPost = async (req, res) => {
 // GET ALL POSTS
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find()
+    const { author } = req.query;
+    const filter = author ? { author } : {};
+
+    const posts = await Post.find(filter)
       .populate("author", "name avatar")
       .populate("comments.user", "name avatar")
       .sort({ createdAt: -1 })
@@ -58,7 +60,7 @@ exports.getPost = async (req, res) => {
 // UPDATE POST
 exports.updatePost = async (req, res) => {
   try {
-    const { title, content, mediaUrl, mediaType } = req.body;
+    const { title, content, media } = req.body;
 
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: "Not found" });
@@ -69,8 +71,7 @@ exports.updatePost = async (req, res) => {
 
     post.title = title || post.title;
     post.content = content || post.content;
-    post.mediaUrl = mediaUrl || post.mediaUrl;
-    post.mediaType = mediaType || post.mediaType;
+    if (media) post.media = media;
 
     await post.save();
     res.json({ message: "Updated", post });
@@ -109,6 +110,9 @@ exports.likePost = async (req, res) => {
       post.likes = post.likes.filter(id => id.toString() !== req.user._id.toString());
     } else {
       post.likes.push(req.user._id);
+      // Send Notification
+      const { createNotification } = require("./notificationController");
+      await createNotification(post.author, req.user._id, "like", post._id);
     }
 
     await post.save();
@@ -130,6 +134,10 @@ exports.addComment = async (req, res) => {
 
     post.comments.push({ user: req.user._id, text });
     await post.save();
+
+    // Send Notification
+    const { createNotification } = require("./notificationController");
+    await createNotification(post.author, req.user._id, "comment", post._id, text);
 
     const updated = await Post.findById(req.params.id)
       .populate("author", "name avatar")
@@ -204,8 +212,7 @@ exports.unfollowAuthor = async (req, res) => {
   }
 };
 
-
-//  SEARCH POSTS 
+//  SEARCH POSTS
 exports.searchPosts = async (req, res) => {
   try {
     const q = req.query.q;

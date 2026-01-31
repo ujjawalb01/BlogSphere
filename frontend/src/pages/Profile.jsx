@@ -54,11 +54,11 @@ export default function Profile() {
           <h2 className="text-xl font-semibold mb-4">Settings</h2>
 
           <MenuItem onClick={() => setSubmenu("account")}>
-            Account Details →
+            Account Details 
           </MenuItem>
 
           <MenuItem onClick={() => setSubmenu("privacy")}>
-            Privacy →
+            Privacy 
           </MenuItem>
 
           <button
@@ -78,15 +78,15 @@ export default function Profile() {
           <h2 className="text-xl font-semibold mb-4">Account Details</h2>
 
           <MenuItem onClick={() => setFormType("name")}>
-            Update Name →
+            Update Name
           </MenuItem>
 
           <MenuItem onClick={() => setFormType("username")}>
-            Update Username →
+            Update Username
           </MenuItem>
 
           <MenuItem onClick={() => setFormType("email")}>
-            Update Email →
+            Update Email
           </MenuItem>
 
           <CloseButton onClick={() => setSubmenu(null)} text="Back" />
@@ -99,7 +99,7 @@ export default function Profile() {
           <h2 className="text-xl font-semibold mb-4">Privacy</h2>
 
           <MenuItem onClick={() => setFormType("password")}>
-            Change Password →
+            Change Password
           </MenuItem>
 
           <CloseButton onClick={() => setSubmenu(null)} text="Back" />

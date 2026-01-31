@@ -1,8 +1,14 @@
 exports.uploadMedia = (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file" });
+  // If no files found, return error
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: "No files uploaded" });
+  }
 
-  const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-  const type = req.file.mimetype.startsWith("video") ? "video" : "image";
+  // Map all files to their URLs and types
+  const media = req.files.map(file => ({
+    url: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+    type: file.mimetype.startsWith("video") ? "video" : "image"
+  }));
 
-  res.json({ url, mediaType: type });
+  res.json(media);
 };

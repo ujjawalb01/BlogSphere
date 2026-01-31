@@ -9,8 +9,9 @@ import Profile from "./pages/Profile";
 import PostDetails from "./pages/PostDetails";
 import EditPost from "./pages/EditPost";
 import SearchPage from "./pages/SearchPage";
+import Messenger from "./pages/Messenger";
+import Notifications from "./pages/Notifications";
 import UserProfile from "./pages/UserProfile";
-
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/edit/:id" element={<EditPost />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/profile/:id" element={<UserProfile />} />
+          <Route path="/messenger" element={<Messenger />} />
         </Routes>
       </main>
     </div>

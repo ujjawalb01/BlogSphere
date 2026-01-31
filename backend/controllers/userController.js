@@ -189,3 +189,24 @@ exports.getUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// GET USER FOLLOWING
+exports.getUserFollowing = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).populate("following", "name username avatar");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user.following);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// GET USER FOLLOWERS
+exports.getUserFollowers = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).populate("followers", "name username avatar");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user.followers);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

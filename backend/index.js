@@ -24,21 +24,54 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Socket.io Events
+io.on("connection", (socket) => {
+  console.log(`User Connected: ${socket.id}`);
+
+  socket.on("join_room", (userId) => {
+    socket.join(userId);
+    console.log(`User joined room: ${userId}`);
+  });
+
+  socket.on("send_message", (data) => {
+    // data: { senderId, receiverId, text, ... }
+    io.to(data.receiverId).emit("receive_message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User Disconnected", socket.id);
+  });
+});
+
+
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/upload", uploadRoutes);
-
 app.use("/api/follow", followRoutes);
+app.use("/api/messages", require("./routes/messages"));
+app.use("/api/notifications", require("./routes/notifications"));
 
 const start = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, { });
     console.log("Connected to MongoDB");
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    // Use server.listen instead of app.listen
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);

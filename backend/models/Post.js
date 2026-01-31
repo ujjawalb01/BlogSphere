@@ -10,8 +10,14 @@ const PostSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   title: String,
   content: String,
-  mediaUrl: String,
-  mediaType: String,
+  
+  // Changed from single mediaUrl/mediaType to array of objects
+  media: [
+    {
+      url: { type: String, required: true },
+      type: { type: String, enum: ["image", "video"], required: true }
+    }
+  ],
 
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   comments: [CommentSchema]

@@ -8,7 +8,9 @@ const {
   getUserStats,
   updateAccount,
   changePassword,
-   getUser
+  getUser,
+  getUserFollowing,
+  getUserFollowers
 } = require("../controllers/userController");
 
 const router = express.Router();
@@ -21,6 +23,10 @@ router.post("/:id/unfollow", auth, unfollowUser);
 
 // SEARCH USERS
 router.get("/search", searchUsers);
+
+// GET FOLLOWERS/FOLLOWING
+router.get("/:id/followers", getUserFollowers);
+router.get("/:id/following", getUserFollowing);
 
 module.exports = router;
 

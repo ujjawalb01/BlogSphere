@@ -22,11 +22,15 @@ exports.followUser = async (req, res) => {
     await currentUser.save();
     await targetUser.save();
 
+    const { createNotification } = require("./notificationController");
+    await createNotification(targetUser._id, currentUser._id, "follow", null);
+
     res.json({ message: "Followed successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // UNFOLLOW USER
 exports.unfollowUser = async (req, res) => {
@@ -53,3 +57,4 @@ exports.unfollowUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+

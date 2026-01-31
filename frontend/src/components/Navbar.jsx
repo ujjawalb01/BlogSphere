@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { BiPlusCircle, BiMessageRoundedDots, BiBell } from "react-icons/bi";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -40,12 +41,29 @@ export default function Navbar() {
         </form>
 
         {/* RIGHT SIDE */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-6">
           <Link
             to="/create"
-            className="px-4 py-2 border rounded-md text-sm bg-white/6 text-white btn"
+            className="text-gray-300 hover:text-white transition-colors"
+            title="Create Post"
           >
-            Create
+            <BiPlusCircle size={28} />
+          </Link>
+          
+          <Link
+            to="/messenger"
+            className="text-gray-300 hover:text-white transition-colors relative"
+            title="Messages"
+          >
+            <BiMessageRoundedDots size={26} />
+          </Link>
+
+          <Link
+            to="/notifications"
+            className="text-gray-300 hover:text-white transition-colors relative"
+            title="Notifications"
+          >
+            <BiBell size={26} />
           </Link>
 
           {user ? (
