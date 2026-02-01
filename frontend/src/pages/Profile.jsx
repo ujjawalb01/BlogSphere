@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { FaBars } from "react-icons/fa";
 import API from "../api";
 
 export default function Profile() {
@@ -143,9 +144,10 @@ export default function Profile() {
 
         <button
           onClick={() => setShowSettings(true)}
-          className="absolute top-6 right-6 bg-white/10 border border-white/20 p-2 rounded-full hover:bg-white/20"
+          className="fixed top-6 right-4 z-50 md:absolute md:top-6 md:right-6 bg-white/10 border border-white/20 p-2 md:p-3 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300 backdrop-blur-md shadow-lg"
+          aria-label="Settings"
         >
-          ⚙️
+          <FaBars className="text-lg md:text-xl text-white/90" />
         </button>
 
         <div className="flex items-center space-x-6">

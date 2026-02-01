@@ -15,8 +15,19 @@ exports.createPost = async (req, res) => {
       media: media || [] // Expecting array of {url, type}
     });
 
-    await post.save();
-    res.json(post);
+    const savedPost = await post.save();
+    
+    // Notify Followers
+    const user = await User.findById(req.user._id);
+    if (user.followers && user.followers.length > 0) {
+        const { createNotification } = require("./notificationController");
+        // Use Promise.all for parallel execution
+        await Promise.all(user.followers.map(async (followerId) => {
+             await createNotification(followerId, req.user._id, "friend_post", savedPost._id, "posted a new update");
+        }));
+    }
+
+    res.json(savedPost);
 
   } catch (err) {
     res.status(500).json({ message: "Server error" });

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { BiPlusCircle, BiMessageRoundedDots, BiBell, BiGlobe, BiPlanet } from "react-icons/bi";
 import API from "../api";
 import { io } from "socket.io-client";
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
   const [query, setQuery] = useState("");
@@ -173,17 +174,19 @@ export default function Navbar() {
         
         {/* Mobile Right Side: Notifications & Login only (since Navbar has Create/Msg) */}
         <div className="flex md:hidden items-center space-x-4">
-             <Link
-                to="/notifications"
-                className="text-gray-300 hover:text-white transition-colors relative"
-             >
-                <BiBell size={24} />
-                {unreadNotifs > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full border-2 border-gray-900">
-                    {unreadNotifs > 9 ? "9+" : unreadNotifs}
-                  </span>
-                )}
-             </Link>
+             {location.pathname !== "/profile" && (
+                 <Link
+                    to="/notifications"
+                    className="text-gray-300 hover:text-white transition-colors relative"
+                 >
+                    <BiBell size={24} />
+                    {unreadNotifs > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full border-2 border-gray-900">
+                        {unreadNotifs > 9 ? "9+" : unreadNotifs}
+                      </span>
+                    )}
+                 </Link>
+             )}
              {!user && <Link to="/login" className="text-sm font-bold text-indigo-400">Login</Link>}
         </div>
       </div>
