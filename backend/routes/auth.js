@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const authController = require("../controllers/authController");
 
 const router = express.Router();
 
@@ -89,5 +90,9 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// Forgot Password
+router.post("/forgotpassword", authController.forgotPassword);
+router.put("/resetpassword/:resetToken", authController.resetPassword);
 
 module.exports = router;

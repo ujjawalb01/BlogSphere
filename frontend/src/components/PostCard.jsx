@@ -23,7 +23,6 @@ export default function PostCard({
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const isFollowing = post.isFollowing;
   const isLiked = post.likes?.includes(currentUser?._id);
 
   // Normalize media to array
@@ -35,6 +34,11 @@ export default function PostCard({
   const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
   const authorId = post.author?._id?.toString() || post.author?.toString();
   const isOwner = currentUserId && authorId && currentUserId === authorId;
+
+  // Fix: Check if currentUser is following this author (robust check)
+  const isFollowing = currentUser?.following?.some(id => 
+     (typeof id === 'string' ? id : id?._id?.toString() || id?.toString()) === authorId
+  );
 
   const handleCommentSubmit = () => {
     if (!commentText.trim()) return;

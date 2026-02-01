@@ -34,6 +34,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+global.io = io;
 
 // Socket.io Events
 io.on("connection", (socket) => {

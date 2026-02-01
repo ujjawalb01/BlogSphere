@@ -27,6 +27,19 @@ exports.markRead = async (req, res) => {
   }
 };
 
+// GET UNREAD COUNT
+exports.getUnreadCount = async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({ 
+      recipient: req.user._id, 
+      read: false 
+    });
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // CREATE NOTIFICATION (Internal use)
 exports.createNotification = async (recipient, sender, type, post, text) => {
     try {
@@ -40,6 +53,11 @@ exports.createNotification = async (recipient, sender, type, post, text) => {
             text
         });
         await newNotif.save();
+
+        if (global.io) {
+            global.io.to(recipient.toString()).emit("newNotification", newNotif);
+        }
+
         return newNotif;
     } catch(err) {
         console.error("Notification Error:", err);

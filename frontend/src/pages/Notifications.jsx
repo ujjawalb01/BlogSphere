@@ -18,6 +18,7 @@ export default function Notifications() {
       // Mark as read after fetching
       if (res.data.length > 0) {
           await API.put("/notifications/read");
+          window.dispatchEvent(new Event("refreshCounts"));
       }
     } catch (err) {
       console.error(err);
@@ -75,12 +76,19 @@ export default function Notifications() {
                   {n.type === "follow" && "started following you"}
                 </p>
                 {n.post && (n.type === "like" || n.type === "comment") && (
-                   <Link to={`/post/${n.post._id || n.post}`} className="text-xs text-indigo-300 hover:underline line-clamp-1 block mt-1">
+                   <Link to={`/post/${n.post._id || n.post}`} className="text-xs text-indigo-300 hover:underline line-clamp-1 block mt-1 font-semibold">
                      {n.post.title || "View Post"}
                    </Link>
                 )}
-                {n.text && <p className="text-xs text-gray-400 mt-1 italic">"{n.text}"</p>}
-                <p className="text-[10px] text-gray-500 mt-2">{new Date(n.createdAt).toLocaleDateString()}</p>
+                
+                {/* Display notification content/text clearly */}
+                {n.text && (
+                    <div className="bg-white/5 p-2 rounded-lg mt-2 border border-white/5">
+                        <p className="text-xs text-gray-300 italic">"{n.text}"</p>
+                    </div>
+                )}
+                
+                <p className="text-[10px] text-gray-500 mt-2">{new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString()}</p>
               </div>
             </div>
           ))}

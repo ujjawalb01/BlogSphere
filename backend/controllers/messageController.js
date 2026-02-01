@@ -1,9 +1,11 @@
 const Message = require("../models/Message");
+const User = require("../models/User");
+const mongoose = require("mongoose");
 
 // GET CONVERSATIONS LIST
 exports.getConversations = async (req, res) => {
   try {
-    const currentUserId = req.user._id;
+    const currentUserId = new mongoose.Types.ObjectId(req.user._id);
     // Find all messages where user is sender or receiver
     // We want to group by the "other" user
     
@@ -60,6 +62,21 @@ exports.getConversations = async (req, res) => {
   }
 };
 
+// GET UNREAD MESSAGES COUNT
+exports.getUnreadCount = async (req, res) => {
+  try {
+    const count = await Message.countDocuments({ 
+      receiver: req.user._id, 
+      isRead: false 
+    });
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
 // GET CONVERSATION (Messages)
 exports.getMessages = async (req, res) => {
   try {
@@ -79,6 +96,20 @@ exports.getMessages = async (req, res) => {
   }
 };
 
+// MARK MESSAGES READ
+exports.markMessagesRead = async (req, res) => {
+  try {
+    const { senderId } = req.body;
+    await Message.updateMany(
+      { sender: senderId, receiver: req.user._id, isRead: false },
+      { $set: { isRead: true } }
+    );
+    res.json({ message: "Messages marked as read" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // CREATE MESSAGE
 exports.createMessage = async (req, res) => {
   try {
@@ -90,6 +121,11 @@ exports.createMessage = async (req, res) => {
     });
 
     const savedMessage = await newMessage.save();
+
+    if (global.io) {
+        global.io.to(receiverId.toString()).emit("newMessage", savedMessage);
+    }
+    
     res.json(savedMessage);
   } catch (err) {
     res.status(500).json({ message: "Server error" });

@@ -12,10 +12,14 @@ import SearchPage from "./pages/SearchPage";
 import Messenger from "./pages/Messenger";
 import Notifications from "./pages/Notifications";
 import UserProfile from "./pages/UserProfile";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
+import BottomNav from "./components/BottomNav";
 
 export default function App() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16 md:pb-0">
       <Navbar />
 
       <main className="container mx-auto px-4 py-10">
@@ -23,6 +27,8 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/create" element={<CreatePost />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/post/:id" element={<PostDetails />} />
@@ -32,6 +38,8 @@ export default function App() {
           <Route path="/messenger" element={<Messenger />} />
         </Routes>
       </main>
+      
+      <BottomNav />
     </div>
   );
 }

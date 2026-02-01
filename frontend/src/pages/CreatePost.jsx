@@ -117,19 +117,19 @@ export default function CreatePost() {
              </div>
           </div>
 
-          {/* PREVIEWS */}
-          {previews.length > 0 && (
-             <div className="grid grid-cols-4 gap-2">
-                {previews.map((src, i) => (
-                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
-                     <img src={src} alt="" className="w-full h-full object-cover" />
-                     <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-lg">
-                       <FaTimes size={10} />
-                     </button>
-                  </div>
-                ))}
-             </div>
-          )}
+           {/* PREVIEWS */}
+           {previews.length > 0 && (
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                 {previews.map((src, i) => (
+                   <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition shadow-lg">
+                        <FaTimes size={10} />
+                      </button>
+                   </div>
+                 ))}
+              </div>
+           )}
 
           <div className="flex justify-end">
             <button

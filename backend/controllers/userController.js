@@ -26,6 +26,10 @@ exports.followUser = async (req, res) => {
     await me.save();
     await targetUser.save();
 
+    // Send Notification
+    const { createNotification } = require("./notificationController");
+    await createNotification(targetUser._id, req.user._id, "follow", null, "");
+
     res.json({ message: "Followed successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });

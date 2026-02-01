@@ -32,6 +32,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts();
+    if(user) refreshUser();
   }, []);
 
   // Update user in local storage to keep "following" list fresh
@@ -48,11 +49,28 @@ export default function Home() {
   };
 
   const handleLike = async (id) => {
+    const prevPosts = posts;
+    if (!user) return alert("Please login to like posts");
+
+    const userId = user._id || user.id;
+
+    // Optimistic Update
+    setPosts(prevPosts.map(p => {
+        if (p._id === id) {
+            const alreadyLiked = p.likes.includes(userId);
+            const newLikes = alreadyLiked 
+                ? p.likes.filter(uid => uid !== userId)
+                : [...p.likes, userId];
+            return { ...p, likes: newLikes };
+        }
+        return p;
+    }));
+
     try {
       await API.post(`/posts/${id}/like`);
-      fetchPosts(); 
     } catch (err) {
       console.error("Like Error:", err);
+      setPosts(prevPosts);
     }
   };
 
