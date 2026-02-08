@@ -81,6 +81,8 @@ export default function Home() {
       fetchPosts();
     } catch (err) {
       console.error("Delete Error:", err);
+      const msg = err.response?.data?.message || "Failed to delete";
+      alert(msg);
     }
   };
 

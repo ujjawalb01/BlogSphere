@@ -128,7 +128,8 @@ export default function PostDetails() {
           navigate("/");
       } catch (err) {
           console.error(err);
-          alert("Failed to delete");
+          const msg = err.response?.data?.message || "Failed to delete";
+          alert(msg);
       }
   };
 

@@ -96,15 +96,22 @@ exports.updatePost = async (req, res) => {
 exports.deletePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Not found" });
+    if (!post) {
+      console.log(`[DELETE] Post not found: ${req.params.id}`);
+      return res.status(404).json({ message: "Not found" });
+    }
 
-    if (post.author.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: "Forbidden" });
+    if (post.author.toString() !== req.user._id.toString()) {
+      console.log(`[DELETE] Forbidden: User ${req.user._id} tried to delete post ${post._id} by ${post.author}`);
+      return res.status(403).json({ message: "Forbidden: You are not the author" });
+    }
 
     await post.deleteOne();
+    console.log(`[DELETE] Post deleted: ${post._id}`);
     res.json({ message: "Deleted" });
 
   } catch (err) {
+    console.error(`[DELETE] Error:`, err);
     res.status(500).json({ message: "Server error" });
   }
 };
