@@ -44,7 +44,7 @@ export default function PostDetails() {
 
   if (!post) return (
      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#d9ff65] border-t-transparent"></div>
      </div>
   );
 
@@ -62,7 +62,7 @@ export default function PostDetails() {
     .map((p, i) => (
       <p
         key={i}
-        className="text-lg md:text-xl leading-relaxed text-gray-300 mb-6 drop-shadow-sm font-light"
+        className="mb-6 text-lg font-normal leading-8 text-gray-300 md:text-xl md:leading-9"
       >
         {p}
       </p>
@@ -143,18 +143,18 @@ export default function PostDetails() {
   const isOwner = loggedUser && (loggedUser._id === post.author?._id || loggedUser.id === post.author?._id);
 
   return (
-    <div className="relative min-h-screen pb-20">
+    <div className="relative min-h-screen pb-16">
       {/* Scroll progress */}
       <div
-        className="fixed top-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 z-50 transition-all duration-100"
+        className="fixed top-0 left-0 z-50 h-1 bg-[#d9ff65] transition-all duration-100"
         style={{ width: `${scrollProgress}%` }}
       ></div>
 
-      <div className="max-w-4xl mx-auto px-4 pt-10">
+      <div className="mx-auto max-w-5xl px-0 pt-2 md:pt-4">
         
         {/* MEDIA CAROUSEL (HERO) */}
         {mediaList.length > 0 && (
-           <div className="rounded-2xl overflow-hidden glass shadow-2xl mb-12 border border-white/5 relative group">
+           <div className="relative mb-8 overflow-hidden rounded-2xl border border-white/10 bg-black/30 md:mb-12">
              <Swiper
                modules={[Pagination, Navigation]}
                pagination={{ clickable: true }}
@@ -177,20 +177,20 @@ export default function PostDetails() {
         )}
 
         {/* CONTENT WRAPPER */}
-        <div className="max-w-3xl mx-auto">
+        <div className="mx-auto max-w-3xl px-1 md:px-4">
             {/* META */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-4">
                    <Link to={`/profile/${post.author?._id}`}>
                       <img 
                         src={post.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author?.name}`} 
-                        className="w-12 h-12 rounded-full border-2 border-indigo-500 object-cover" 
+                        className="h-11 w-11 rounded-full border border-white/15 object-cover"
                         alt="" 
                       />
                    </Link>
                    <div>
-                      <h3 className="text-white font-bold text-lg">{post.author?.name}</h3>
-                      <p className="text-indigo-400 text-sm">@{post.author?.username}</p>
+                      <h3 className="text-sm font-semibold text-white">{post.author?.name}</h3>
+                      <p className="text-xs text-gray-500">@{post.author?.username}</p>
                    </div>
                 </div>
 
@@ -225,18 +225,19 @@ export default function PostDetails() {
             </div>
 
             {/* TITLE */}
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400 mb-6 md:mb-10 tracking-tight leading-tight">
+            <p className="eyebrow mb-4">Published {new Date(post.createdAt).toLocaleDateString()}</p>
+            <h1 className="editorial-title mb-7 text-4xl font-semibold leading-[.98] text-white md:mb-10 md:text-6xl lg:text-7xl">
                {post.title}
             </h1>
 
             {/* BODY */}
-            <article className="prose prose-invert lg:prose-xl max-w-none mb-12">
+            <article className="max-w-none mb-10 md:mb-14">
                {formattedContent}
             </article>
 
             {/* INTERACTION BAR */}
-            <div className="flex items-center justify-between py-6 border-t border-b border-gray-800 mb-12">
-                 <div className="flex space-x-8">
+            <div className="mb-12 flex items-center justify-between rounded-xl border border-white/10 bg-white/[.03] px-4 py-3 md:px-5">
+                 <div className="flex space-x-6">
                      <button 
                        onClick={handleLike}
                        className={`flex items-center space-x-2 text-xl transition ${isLiked ? "text-red-500" : "text-gray-400 hover:text-red-400"}`}
@@ -265,11 +266,12 @@ export default function PostDetails() {
 
             {/* COMMENTS SECTION */}
             <div id="comments-section" className="mb-20">
-                <h3 className="text-2xl font-bold text-white mb-8">Comments ({post.comments?.length || 0})</h3>
+                <p className="eyebrow mb-3">Conversation</p>
+                <h3 className="editorial-title mb-8 text-3xl font-semibold text-white">Comments ({post.comments?.length || 0})</h3>
                 
                 {/* Add Comment */}
                 <div className="flex space-x-4 mb-10">
-                    <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#d9ff65] font-bold text-[#202318]">
                         {loggedUser?.name?.charAt(0) || "?"}
                     </div>
                     <div className="flex-1">
@@ -282,7 +284,7 @@ export default function PostDetails() {
                         <div className="flex justify-end mt-2">
                             <button 
                                 onClick={handleCommentSubmit}
-                                className="px-6 py-2 bg-primary text-white rounded-full font-semibold hover:scale-105 transition flex items-center space-x-2"
+                                className="flex items-center space-x-2 rounded-full px-5 py-2.5 text-sm btn"
                             >
                                 <BiSend /> <span>Post Comment</span>
                             </button>

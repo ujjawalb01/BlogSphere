@@ -142,31 +142,30 @@ export default function UserProfile() {
   };
 
   if (!user) {
-    return <div className="text-center text-indigo-200 mt-20">Loading profile...</div>;
+    return <div className="mt-20 text-center text-gray-400">Loading profile...</div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10 text-white">
-      <div className="glass-card p-6 md:p-8 rounded-2xl mb-10 relative overflow-hidden">
-        {/* Decorative Background Blur */}
-        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-3xl"></div>
+    <div className="mx-auto max-w-5xl py-2 text-white md:py-4">
+      <div className="glass-card relative mb-10 overflow-hidden p-6 md:p-8">
 
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 text-center md:text-left">
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full p-1 bg-gradient-to-tr from-indigo-500 to-purple-500">
-               <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border-4 border-gray-900">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-[#d9ff65]/70 bg-[#282926] md:h-28 md:w-28">
+               <div className="h-full w-full overflow-hidden rounded-full bg-gray-900">
                    {user.avatar ? (
                        <img src={user.avatar} className="w-full h-full object-cover" />
                    ) : (
-                       <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+                       <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-[#d9ff65]">
                            {user.name?.charAt(0).toUpperCase()}
                        </span>
                    )}
                </div>
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-1">{user.name}</h2>
-              <p className="text-indigo-300 font-medium">@{user.username}</p>
+              <p className="eyebrow mb-2">Member profile</p>
+              <h2 className="editorial-title mb-1 text-4xl font-semibold text-white">{user.name}</h2>
+              <p className="text-sm text-gray-400">@{user.username}</p>
               {/* Optional: Add bio if available */}
             </div>
           </div>
@@ -176,16 +175,16 @@ export default function UserProfile() {
               <Link 
                 to="/messenger" 
                 state={{ chatUser: user }}
-                className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full font-medium transition backdrop-blur-md border border-white/10"
+                className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10"
               >
                 Message
               </Link>
               {isFollowing ? (
-                <button onClick={unfollow} className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 rounded-full font-medium transition">
-                  Unfollow
+                <button onClick={unfollow} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-gray-300 hover:border-red-400/60 hover:text-red-300">
+                  Following
                 </button>
               ) : (
-                <button onClick={follow} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-medium transition shadow-lg shadow-indigo-500/30">
+                <button onClick={follow} className="rounded-full px-5 py-2.5 text-sm btn">
                   Follow
                 </button>
               )}
@@ -194,7 +193,7 @@ export default function UserProfile() {
         </div>
 
         {stats && (
-          <div className="grid grid-cols-3 gap-4 mt-8 bg-white/5 p-4 rounded-xl border border-white/5 backdrop-blur-sm">
+          <div className="mt-8 grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-black/15 p-2">
             <Stat title="Followers" value={stats.followers || 0} onClick={() => handleStatClick("followers")} />
             <Stat title="Following" value={stats.following || 0} onClick={() => handleStatClick("following")} />
             <Stat title="Posts" value={stats.posts || 0} onClick={() => handleStatClick("posts")} />
@@ -202,14 +201,15 @@ export default function UserProfile() {
         )}
       </div>
 
-      <h3 className="text-xl font-semibold mb-4" id="posts-section">Posts</h3>
+      <p className="eyebrow mb-2" id="posts-section">Published work</p>
+      <h3 className="editorial-title mb-5 text-3xl font-semibold">Posts</h3>
 
       {posts.length === 0 ? (
-        <p className="text-indigo-300">This user has not posted anything yet.</p>
+        <p className="rounded-xl border border-dashed border-white/15 py-12 text-center text-gray-400">This user has not posted anything yet.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {posts.map((post) => (
-            <Link key={post._id} to={`/post/${post._id}`} className="rounded-xl overflow-hidden card bg-white/5 hover:bg-white/10 transition">
+            <Link key={post._id} to={`/post/${post._id}`} className="card group overflow-hidden rounded-xl">
               {post.mediaUrl ? (
                 post.mediaType === "image" ? (
                   <img src={post.mediaUrl} className="w-full h-56 object-cover" alt={post.title} />
@@ -224,7 +224,7 @@ export default function UserProfile() {
 
               <div className="p-4">
                 <h4 className="font-semibold text-lg text-white">{post.title}</h4>
-                <p className="text-indigo-300 text-sm line-clamp-2 mt-1">{post.content}</p>
+                <p className="mt-1 text-sm text-gray-400 line-clamp-2">{post.content}</p>
               </div>
             </Link>
           ))}
@@ -244,9 +244,9 @@ export default function UserProfile() {
 
 function Stat({ title, value, onClick }) {
   return (
-    <button onClick={onClick} className="flex-1 text-center cursor-pointer p-2 rounded-lg hover:bg-white/10 transition">
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-indigo-300 text-sm">{title}</div>
+    <button onClick={onClick} className="flex-1 rounded-lg p-3 text-center hover:bg-white/10">
+      <div className="text-xl font-semibold">{value}</div>
+      <div className="mt-1 text-xs text-gray-500">{title}</div>
     </button>
   );
 }

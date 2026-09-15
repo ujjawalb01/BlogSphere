@@ -5,9 +5,9 @@ import { Link } from "react-router-dom";
 export default function UserListModal({ title = "Users", users = [], onClose = () => {} }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md p-5 bg-white/6 rounded-xl border border-white/20 shadow-lg">
+      <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#20211f] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <h3 className="editorial-title text-2xl font-semibold text-white">{title}</h3>
           <button
             onClick={onClose}
             className="text-indigo-200 hover:text-white px-2 py-1 rounded"

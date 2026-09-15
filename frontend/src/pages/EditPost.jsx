@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api";
@@ -115,9 +114,10 @@ export default function EditPost() {
   );
 
   return (
-    <div className="max-w-3xl mx-auto pt-10 px-4 pb-20">
-      <div className="glass rounded-xl p-8 border border-white/10">
-        <h2 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Edit Post</h2>
+    <div className="mx-auto max-w-3xl px-0 pb-20 pt-3 md:pt-6">
+      <div className="glass rounded-2xl p-6 md:p-8">
+        <p className="eyebrow mb-3">Editor</p>
+        <h2 className="editorial-title mb-7 text-4xl font-semibold">Refine your story.</h2>
         
         <form onSubmit={submit} className="space-y-6">
           {/* Title */}
@@ -209,10 +209,18 @@ export default function EditPost() {
              </div>
           </div>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => navigate(`/post/${id}`)}
+              disabled={loading}
+              className="rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-gray-300 hover:border-white/30 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
             <button
               disabled={loading}
-              className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg hover:scale-105 transition shadow-lg disabled:opacity-50 disabled:hover:scale-100"
+              className="rounded-full px-7 py-3 text-sm btn disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Saving..." : "Save Changes"}
             </button>

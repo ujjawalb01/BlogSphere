@@ -73,9 +73,10 @@ export default function CreatePost() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto pt-10">
-      <div className="glass rounded-xl p-8">
-        <h2 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Create New Post</h2>
+    <div className="mx-auto max-w-2xl pt-3 md:pt-6">
+      <div className="glass rounded-2xl p-6 md:p-8">
+        <p className="eyebrow mb-3">New story</p>
+        <h2 className="editorial-title mb-7 text-4xl font-semibold">Write something worth keeping.</h2>
         <form onSubmit={submit} className="space-y-6">
 
           <div>
@@ -102,7 +103,7 @@ export default function CreatePost() {
           </div>
 
           {/* DRAG & DROP / FILE AREA */}
-          <div className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-indigo-500 transition-colors relative">
+          <div className="relative rounded-xl border border-dashed border-white/20 p-7 text-center hover:border-[#d9ff65]/70">
              <input
                type="file"
                multiple
@@ -131,10 +132,18 @@ export default function CreatePost() {
               </div>
            )}
 
-          <div className="flex justify-end">
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              disabled={uploading}
+              className="rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-gray-300 hover:border-white/30 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
             <button
               disabled={uploading}
-              className="btn-primary w-full md:w-auto"
+              className="btn-primary w-full rounded-full md:w-auto"
             >
               {uploading ? "Publishing..." : "Publish Post"}
             </button>

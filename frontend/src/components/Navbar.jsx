@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { BiPlusCircle, BiMessageRoundedDots, BiBell, BiGlobe, BiPlanet } from "react-icons/bi";
+import { BiPlusCircle, BiMessageRoundedDots, BiBell, BiPlanet, BiMoon, BiSun } from "react-icons/bi";
 import API from "../api";
 import { io } from "socket.io-client";
 
@@ -12,6 +12,12 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   // Fetch initial unread counts and set up socket listeners
   useEffect(() => {
@@ -79,52 +85,56 @@ export default function Navbar() {
     navigate(`/search?q=${query}`);
   };
 
+  const toggleTheme = () => setTheme((current) => current === "dark" ? "light" : "dark");
+
   return (
-    <nav className="py-4">
-      <div className="container mx-auto px-4 flex items-center justify-between">
+    <nav className="sticky top-0 z-40 border-b border-white/10 bg-[#171817]/95 backdrop-blur-md">
+      <div className="mx-auto flex h-[70px] max-w-7xl items-center justify-between px-4 md:px-8">
 
         {/* LOGO */}
         <Link to="/" className="flex items-center space-x-3 group">
-          <div className="relative w-12 h-12 flex items-center justify-center">
-            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-xl rotate-6 group-hover:rotate-12 transition-transform duration-300 opacity-80 blur-sm"></div>
-            <div className="relative w-full h-full bg-gray-900 border border-white/10 rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform">
-               <BiPlanet className="text-3xl text-transparent bg-clip-text bg-gradient-to-tr from-indigo-400 to-pink-400" style={{color: '#818cf8'}} />
-            </div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d9ff65]/60 text-[#d9ff65] group-hover:bg-[#d9ff65] group-hover:text-[#202318]">
+             <BiPlanet className="text-2xl" />
           </div>
           <div>
-            <h1 className="font-bold text-2xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400">
-              BlogSphere
-            </h1>
-            <p className="text-[10px] uppercase tracking-widest text-indigo-300/80 font-medium">
-              Explore the World
-            </p>
+            <h1 className="text-xl font-semibold tracking-tight text-[#f5f3ed]">BlogSphere</h1>
+            <p className="eyebrow mt-0.5 text-[8px]">Stories in common</p>
           </div>
         </Link>
 
         {/* SEARCH BAR */}
-        <form onSubmit={handleSearch} className="hidden md:flex items-center">
+        {user && <form onSubmit={handleSearch} className="hidden md:flex items-center">
           <input
             type="text"
             placeholder="Search posts or users..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-white/10 text-white placeholder-indigo-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-primary w-52 md:w-72"
+            className="w-52 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-gray-500 outline-none transition focus:border-[#d9ff65]/70 md:w-72"
           />
-        </form>
+        </form>}
 
         {/* RIGHT SIDE - Desktop */}
-        <div className="hidden md:flex items-center space-x-6">
-          <Link
+        <div className="hidden md:flex items-center space-x-5">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="rounded-full border border-white/10 p-2 text-gray-400 hover:border-white/25 hover:text-[#d9ff65]"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? <BiSun size={19} /> : <BiMoon size={19} />}
+          </button>
+          {user && <Link
             to="/create"
-            className="text-gray-300 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-[#d9ff65]"
             title="Create Post"
           >
             <BiPlusCircle size={28} />
-          </Link>
+          </Link>}
           
-          <Link
+          {user && <Link
             to="/messenger"
-            className="text-gray-300 hover:text-white transition-colors relative"
+            className="relative text-gray-400 hover:text-[#d9ff65]"
             title="Messages"
           >
             <BiMessageRoundedDots size={26} />
@@ -133,11 +143,11 @@ export default function Navbar() {
                 {unreadMsgs > 9 ? "9+" : unreadMsgs}
               </span>
             )}
-          </Link>
+          </Link>}
 
-          <Link
+          {user && <Link
             to="/notifications"
-            className="text-gray-300 hover:text-white transition-colors relative"
+            className="relative text-gray-400 hover:text-[#d9ff65]"
             title="Notifications"
           >
             <BiBell size={26} />
@@ -146,25 +156,25 @@ export default function Navbar() {
                 {unreadNotifs > 9 ? "9+" : unreadNotifs}
               </span>
             )}
-          </Link>
+          </Link>}
 
           {user ? (
             <>
               <Link to="/profile" className="flex items-center space-x-2 text-sm">
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d9ff65] text-sm font-semibold text-[#202318]">
                   {(user.name && user.name.charAt(0).toUpperCase()) || "U"}
                 </div>
-                <div className="text-white/90">{user.name}</div>
+                <div className="text-sm text-white/90">{user.name}</div>
               </Link>
             </>
           ) : (
             <>
-              <Link to="/login" className="px-3 py-2 text-sm text-indigo-100">
+              <Link to="/login" className="px-3 py-2 text-sm text-gray-300 hover:text-white">
                 Login
               </Link>
               <Link
                 to="/register"
-                className="px-3 py-2 bg-primary text-white rounded-md text-sm btn"
+                className="rounded-full px-4 py-2 text-sm btn"
               >
                 Sign up
               </Link>
@@ -173,8 +183,16 @@ export default function Navbar() {
         </div>
         
         {/* Mobile Right Side: Notifications & Login only (since Navbar has Create/Msg) */}
-        <div className="flex md:hidden items-center space-x-4">
-             {location.pathname !== "/profile" && (
+        <div className="flex md:hidden items-center space-x-3">
+             <button
+                type="button"
+                onClick={toggleTheme}
+                className="rounded-full p-1.5 text-gray-400 hover:bg-white/10 hover:text-[#d9ff65]"
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+             >
+                {theme === "dark" ? <BiSun size={21} /> : <BiMoon size={21} />}
+             </button>
+             {user && location.pathname !== "/profile" && (
                  <Link
                     to="/notifications"
                     className="text-gray-300 hover:text-white transition-colors relative"
@@ -187,7 +205,10 @@ export default function Navbar() {
                     )}
                  </Link>
              )}
-             {!user && <Link to="/login" className="text-sm font-bold text-indigo-400">Login</Link>}
+             {!user && <>
+               <Link to="/login" className="text-sm font-semibold text-gray-200 hover:text-white">Login</Link>
+               <Link to="/register" className="rounded-full px-3 py-1.5 text-xs btn">Sign up</Link>
+             </>}
         </div>
       </div>
     </nav>

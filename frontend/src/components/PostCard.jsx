@@ -21,7 +21,6 @@ export default function PostCard({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const isLiked = post.likes?.includes(currentUser?._id);
 
@@ -54,7 +53,7 @@ export default function PostCard({
 
   return (
     <>
-      <article className="glass-card mb-8 overflow-hidden">
+      <article className="glass-card group mb-0 overflow-hidden">
         
         {/* HEADER */}
         <div className="p-4 flex items-center justify-between">
@@ -62,11 +61,11 @@ export default function PostCard({
             <img 
               src={post.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author?.name}`} 
               alt="avatar" 
-              className="w-10 h-10 rounded-full bg-gray-700 object-cover"
+              className="w-10 h-10 rounded-full bg-gray-700 object-cover ring-1 ring-white/10"
             />
             <div>
-              <h3 className="font-semibold text-white">{post.author?.name || "Unknown"}</h3>
-              <p className="text-xs text-indigo-300">{new Date(post.createdAt).toLocaleString()}</p>
+              <h3 className="text-sm font-semibold text-white">{post.author?.name || "Unknown"}</h3>
+              <p className="mt-0.5 text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</p>
             </div>
           </Link>
           
@@ -74,9 +73,9 @@ export default function PostCard({
           <div className="flex items-center space-x-2">
              {currentUser && post.author && !isOwner && (
                isFollowing ? (
-                  <button onClick={() => onUnfollow(post.author?._id)} className="text-xs font-semibold text-red-400 border border-red-400 px-3 py-1 rounded-full hover:bg-red-500/10 transition">Unfollow</button>
+                  <button onClick={() => onUnfollow(post.author?._id)} className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-gray-300 hover:border-red-400/60 hover:text-red-300">Following</button>
                ) : (
-                  <button onClick={() => onFollow(post.author?._id)} className="text-xs font-semibold text-indigo-400 border border-indigo-400 px-3 py-1 rounded-full hover:bg-indigo-500/10 transition">Follow</button>
+                  <button onClick={() => onFollow(post.author?._id)} className="rounded-full border border-[#d9ff65]/70 px-3 py-1.5 text-xs font-semibold text-[#d9ff65] hover:bg-[#d9ff65] hover:text-[#202318]">Follow</button>
                )
              )}
              {post.canDelete && (
@@ -91,7 +90,7 @@ export default function PostCard({
              modules={[Pagination, Navigation]}
              pagination={{ clickable: true }}
              navigation
-             className="w-full h-[400px] bg-black/50"
+             className="w-full h-[360px] bg-black/30 md:h-[400px]"
            >
              {mediaList.map((item, index) => (
                <SwiperSlide key={index} className="flex items-center justify-center">
@@ -100,7 +99,9 @@ export default function PostCard({
                      <source src={item.url} />
                    </video>
                  ) : (
-                   <img src={item.url} alt={`Slide ${index}`} className="w-full h-full object-contain" />
+                   <Link to={`/post/${post._id}`} className="flex h-full w-full items-center justify-center" aria-label={`Open ${post.title}`}>
+                     <img src={item.url} alt={`Slide ${index}`} className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.015]" />
+                   </Link>
                  )}
                </SwiperSlide>
              ))}
@@ -108,24 +109,21 @@ export default function PostCard({
         )}
 
         {/* CONTENT */}
-        <div onClick={() => setIsExpanded(!isExpanded)} className="p-5 cursor-pointer">
-           <h2 className="text-xl font-bold text-white mb-3 text-left">{post.title}</h2>
+        <div className="p-5">
+           <Link to={`/post/${post._id}`} className="block">
+             <h2 className="editorial-title mb-3 text-left text-2xl font-semibold leading-tight text-white transition group-hover:text-[#d9ff65]">{post.title}</h2>
+           </Link>
            
-           <div className={`text-gray-300 text-sm mb-4 text-left whitespace-pre-wrap leading-relaxed ${!isExpanded ? 'line-clamp-3' : ''}`}>
-             {post.content}
-           </div>
+           <Link to={`/post/${post._id}`} className="block">
+             <div className="mb-4 text-left text-sm leading-relaxed text-gray-400 whitespace-pre-wrap line-clamp-3">{post.content}</div>
+           </Link>
            
-           {post.content.length > 150 && (
-             <button 
-               onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-               className="text-indigo-400 text-sm font-semibold hover:text-indigo-300 mb-4"
-             >
-               {isExpanded ? "Show Less" : "Read More"}
-             </button>
-           )}
+           <Link to={`/post/${post._id}`} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-[#d9ff65] hover:text-white">
+             Open story <span aria-hidden="true">→</span>
+           </Link>
            
            {/* ACTION BUTTONS */}
-           <div className="flex items-center justify-between pt-4 border-t border-white/10" onClick={(e) => e.stopPropagation()}>
+           <div className="flex items-center justify-between border-t border-white/10 pt-4">
              <div className="flex space-x-6">
                 <button 
                   onClick={() => onLike(post._id)}
@@ -155,7 +153,7 @@ export default function PostCard({
 
            {/* COMMENTS SECTION */}
            {showComments && (
-              <div className="mt-4 pt-4 border-t border-white/10 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+              <div className="mt-4 pt-4 border-t border-white/10 page-enter">
                  <div className="max-h-40 overflow-y-auto space-y-3 mb-4 pr-2">
                    {post.comments?.length > 0 ? (
                       post.comments.map((c, i) => (

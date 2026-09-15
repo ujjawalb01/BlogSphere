@@ -22,7 +22,7 @@ export default function App() {
     <div className="min-h-screen pb-16 md:pb-0">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-10">
+      <main className="page-enter mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -36,6 +36,7 @@ export default function App() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/profile/:id" element={<UserProfile />} />
           <Route path="/messenger" element={<Messenger />} />
+          <Route path="/notifications" element={<Notifications />} />
         </Routes>
       </main>
       

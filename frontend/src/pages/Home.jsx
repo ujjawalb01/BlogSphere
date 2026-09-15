@@ -157,19 +157,23 @@ export default function Home() {
 
   return (
     <>
-      <header className="mb-12 text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 mb-4">
-           Stories & Ideas
-        </h1>
-        <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          A community to share your journey through images, videos, and words.
-        </p>
+      <header className="mb-8 border-b border-white/10 pb-8 md:mb-10 md:pb-10">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <p className="eyebrow mb-3">The community journal</p>
+            <h1 className="editorial-title mb-3 text-5xl font-semibold leading-none text-[#f5f3ed] md:text-6xl">Stories &amp; ideas</h1>
+            <p className="max-w-xl text-base leading-relaxed text-gray-400 md:text-lg">A community to share your journey through images, videos, and words.</p>
+          </div>
+          <Link to="/create" className="inline-flex shrink-0 items-center justify-center rounded-full px-5 py-3 text-sm btn">Write a story</Link>
+        </div>
       </header>
 
       {loading ? (
         <Spinner />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto px-4">
+        <div>
+          <div className="mb-5 flex items-center justify-between"><p className="text-sm font-medium text-gray-300">Latest from the community</p><span className="eyebrow text-gray-500">{posts?.length || 0} stories</span></div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {posts && posts.length ? (
             posts.map((p) => (
               <PostCard
@@ -185,13 +189,14 @@ export default function Home() {
             ))
           ) : (
             <div className="col-span-full">
-              <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10">
+              <div className="rounded-2xl border border-dashed border-white/15 bg-white/[.025] py-20 text-center">
                 <h3 className="text-xl font-semibold text-white mb-2">No posts yet</h3>
                 <p className="text-gray-400 mb-6">Be the first to share something amazing!</p>
-                <Link to="/create" className="px-6 py-2 bg-primary text-white rounded-full hover:scale-105 transition btn">Create Post</Link>
+                <Link to="/create" className="rounded-full px-5 py-2.5 text-sm btn">Write a post</Link>
               </div>
             </div>
           )}
+          </div>
         </div>
       )}
     </>

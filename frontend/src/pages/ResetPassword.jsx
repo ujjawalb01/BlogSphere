@@ -35,9 +35,9 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4">
-      <div className="w-full max-w-md bg-gray-900 border border-white/10 p-8 rounded-2xl shadow-xl">
-        <h2 className="text-3xl font-bold text-white mb-6 text-center">Reset Password</h2>
+    <div className="flex min-h-[70vh] items-center justify-center p-4">
+      <div className="glass-card w-full max-w-md p-8">
+        <p className="eyebrow mb-3 text-center">Account recovery</p><h2 className="editorial-title mb-6 text-center text-4xl font-semibold text-white">Choose a new password.</h2>
         
         {msg && <div className="bg-green-500/10 text-green-400 p-3 rounded mb-4">{msg}</div>}
         {error && <div className="bg-red-500/10 text-red-400 p-3 rounded mb-4">{error}</div>}

@@ -42,7 +42,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 md:py-10 text-white">
+    <div className="mx-auto max-w-4xl py-2 text-white md:py-4">
       
       {/* Mobile Search Input */}
       <form onSubmit={handleSearch} className="mb-8 relative">
@@ -51,7 +51,7 @@ export default function SearchPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search users or posts..."
-            className="w-full bg-white/10 border border-white/10 rounded-full px-6 py-4 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-lg shadow-lg"
+            className="w-full rounded-full border border-white/10 bg-black/20 px-6 py-4 text-lg text-white placeholder-gray-500 outline-none"
         />
         <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400 font-semibold px-4 py-1 hover:text-white transition">
             Search
@@ -66,7 +66,7 @@ export default function SearchPage() {
          </div>
       ) : (
         <>
-            <h2 className="text-xl md:text-2xl font-semibold mb-6">
+            <p className="eyebrow mb-2">Search results</p><h2 className="editorial-title mb-8 text-3xl font-semibold md:text-4xl">
                 Results for <span className="text-indigo-300">"{q}"</span>
             </h2>
 
@@ -82,7 +82,7 @@ export default function SearchPage() {
                     <Link
                         key={u._id}
                         to={`/profile/${u._id}`}
-                        className="block p-4 rounded-lg bg-white/5 hover:bg-white/10 transition shadow border border-white/10"
+                        className="block rounded-xl border border-white/10 bg-white/[.025] p-4 hover:bg-white/[.07]"
                     >
                         <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-indigo-100 font-semibold">
@@ -111,7 +111,7 @@ export default function SearchPage() {
                     <Link
                         key={p._id}
                         to={`/post/${p._id}`}
-                        className="block p-5 rounded-lg bg-white/5 hover:bg-white/10 transition shadow border border-white/10"
+                        className="block rounded-xl border border-white/10 bg-white/[.025] p-5 hover:bg-white/[.07]"
                     >
                         <div className="font-semibold text-lg text-white">{p.title}</div>
                         <div className="text-indigo-300 text-sm mt-1">

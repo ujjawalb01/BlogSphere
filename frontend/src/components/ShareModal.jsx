@@ -83,9 +83,9 @@ export default function ShareModal({ post, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-gray-900 border border-white/10 w-full max-w-md rounded-2xl p-6 shadow-2xl relative flex flex-col max-h-[80vh]">
+      <div className="relative flex max-h-[80vh] w-full max-w-md flex-col rounded-2xl border border-white/15 bg-[#20211f] p-6 shadow-2xl">
         <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-white">Share Post</h3>
+            <div><p className="eyebrow mb-2">Share</p><h3 className="editorial-title text-3xl font-semibold text-white">Send this post</h3></div>
             <button 
               onClick={onClose}
               className="text-gray-400 hover:text-white transition"
@@ -147,7 +147,7 @@ export default function ShareModal({ post, onClose }) {
             <button
                 onClick={handleSend}
                 disabled={selectedUsers.length === 0 || sending}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="btn flex w-full items-center justify-center space-x-2 rounded-full py-3 disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {sending ? (
                     <span>Sending...</span>

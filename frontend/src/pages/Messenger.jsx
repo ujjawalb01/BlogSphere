@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useLocation } from "react-router-dom";
+import { BiArrowBack, BiEditAlt, BiSearch } from "react-icons/bi";
 import ChatBox from "../components/ChatBox";
 import API from "../api";
 
@@ -9,8 +10,9 @@ export default function Messenger() {
   const [currentChat, setCurrentChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user") || "null");
   const scrollRef = useRef();
+  const searchRef = useRef();
   const location = useLocation();
 
   useEffect(() => {
@@ -37,8 +39,8 @@ export default function Messenger() {
 
   useEffect(() => {
     if (socket && user) {
-      socket.emit("join_room", user._id);
-      socket.on("receive_message", (data) => {
+      socket.emit("join_room", user._id || user.id);
+      const receiveMessage = (data) => {
         if (currentChat && data.senderId === currentChat._id) {
             setMessages((prev) => [...prev, {
                 sender: data.senderId,
@@ -46,7 +48,9 @@ export default function Messenger() {
                 createdAt: Date.now()
             }]);
         }
-      });
+      };
+      socket.on("receive_message", receiveMessage);
+      return () => socket.off("receive_message", receiveMessage);
     }
   }, [socket, user, currentChat]);
 
@@ -85,17 +89,28 @@ export default function Messenger() {
   }, [currentChat]);
 
   return (
-    <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-120px)] flex gap-4 relative">
+    <div className="flex min-h-[calc(100vh-150px)] items-center justify-center py-2 md:min-h-[calc(100vh-170px)]">
+    <div className="flex h-[calc(100vh-140px)] w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#1b1c1a] shadow-2xl md:h-[680px] md:max-h-[calc(100vh-170px)]">
       {/* SIDEBAR */}
-      <div className={`w-full md:w-1/3 glass rounded-xl p-4 overflow-y-auto flex-col ${currentChat ? 'hidden md:flex' : 'flex'}`}>
-        <h2 className="text-xl font-bold mb-4 text-white">Direct Messages</h2>
+      <aside className={`w-full shrink-0 border-r border-white/10 bg-[#20211f] md:w-[320px] overflow-y-auto flex-col ${currentChat ? 'hidden md:flex' : 'flex'}`}>
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+          <div className="flex items-center gap-3">
+            {user?.avatar ? <img src={user.avatar} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-white/15" /> : <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#d9ff65] text-sm font-bold text-[#202318]">{user?.name?.[0]?.toUpperCase() || "U"}</div>}
+            <div><h2 className="text-sm font-semibold text-white">{user?.username || user?.name || "Messages"}</h2><p className="text-xs text-gray-500">BlogSphere Direct</p></div>
+          </div>
+          <button type="button" onClick={() => searchRef.current?.focus()} className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white" aria-label="New message"><BiEditAlt size={20} /></button>
+        </div>
+        <div className="px-5 pt-5">
+          <div className="mb-5 flex items-center justify-between"><h3 className="text-base font-semibold text-white">Messages</h3><span className="text-xs text-gray-500">{conversations.length}</span></div>
         
         {/* Search */}
-        <div className="mb-4 relative">
+        <div className="relative mb-5">
+             <BiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
              <input 
+               ref={searchRef}
                type="text" 
                placeholder="Search users..." 
-               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm"
+               className="w-full rounded-lg border border-white/10 bg-black/20 py-2.5 pl-10 pr-3 text-sm text-white outline-none"
                onChange={(e) => {
                    const q = e.target.value;
                    
@@ -119,7 +134,8 @@ export default function Messenger() {
              />
         </div>
 
-        <div className="space-y-2 flex-1 overflow-y-auto">
+        </div>
+        <div className="flex-1 overflow-y-auto px-3 pb-4">
           {conversations.map((item) => {
              // Handle both structure types:
              // 1. Conversation object: { user: {...}, lastMessage: {...} }
@@ -135,15 +151,15 @@ export default function Messenger() {
             <div
               key={c._id}
               onClick={() => setCurrentChat(c)}
-              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                currentChat?._id === c._id ? "bg-indigo-600/30 border border-indigo-500/50" : "hover:bg-white/5"
+              className={`flex cursor-pointer items-center space-x-3 rounded-xl border p-3.5 ${
+                currentChat?._id === c._id ? "border-white/10 bg-white/[.09]" : "border-transparent hover:bg-white/[.055]"
               }`}
             >
               <div className="relative shrink-0">
                 <img
                   src={c.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.name}`}
                   alt=""
-                  className="w-12 h-12 rounded-full bg-gray-700 object-cover border border-white/10"
+                  className="h-12 w-12 rounded-full border border-white/10 bg-gray-700 object-cover"
                 />
                 {!isMe && !isRead && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-900"></div>
@@ -173,22 +189,22 @@ export default function Messenger() {
             </div>
           )})}
           {conversations.length === 0 && (
-            <div className="text-gray-500 text-sm text-center mt-10 p-4">
-                <p className="mb-2">No active chats.</p> 
-                <p className="text-xs text-gray-600">Search for a friend to start a conversation.</p>
+            <div className="mt-10 rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-gray-500">
+                <p className="mb-2 font-medium text-gray-300">No conversations yet.</p>
+                <p className="text-xs text-gray-500">Use search to start a conversation.</p>
             </div>
           )}
         </div>
-      </div>
+      </aside>
 
       {/* CHAT AREA */}
-      <div className={`flex-1 md:flex h-full ${!currentChat ? 'hidden' : 'block'}`}>
+      <div className={`min-w-0 flex-1 md:flex h-full ${!currentChat ? 'hidden' : 'block'}`}>
         {currentChat ? (
           <div className="h-full flex flex-col">
               {/* Mobile Header to Back */}
-              <div className="md:hidden flex items-center p-2 border-b border-white/10">
-                  <button onClick={() => setCurrentChat(null)} className="mr-3 text-gray-400 hover:text-white">
-                      ← Back
+              <div className="flex items-center border-b border-white/10 bg-[#20211f] p-3 md:hidden">
+                  <button onClick={() => setCurrentChat(null)} className="mr-3 rounded-full p-1 text-gray-400 hover:bg-white/10 hover:text-white" aria-label="Back to conversations">
+                      <BiArrowBack size={20} />
                   </button>
                   <img src={currentChat.avatar} className="w-8 h-8 rounded-full mr-2"/>
                   <span className="font-bold text-white">{currentChat.name}</span>
@@ -202,11 +218,14 @@ export default function Messenger() {
               />
           </div>
         ) : (
-          <div className="h-full glass rounded-xl flex items-center justify-center text-gray-400 flex-col">
-            <div className="text-6xl mb-4">💬</div>
-            <p>Select a conversation to start messaging</p>
+          <div className="flex h-full w-full flex-1 flex-col items-center justify-center bg-[#1b1c1a] px-6 text-center text-gray-400">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-white/15 text-3xl">✦</div>
+            <p className="text-lg font-semibold text-gray-100">Your messages</p>
+            <p className="mt-2 max-w-xs text-center text-sm leading-relaxed text-gray-500">Search for someone from the inbox to begin a private conversation.</p>
+            <button type="button" onClick={() => searchRef.current?.focus()} className="mt-5 text-sm font-semibold text-[#d9ff65] hover:text-white">New message →</button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
