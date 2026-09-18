@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { BiMailSend, BiArrowBack } from "react-icons/bi";
 import API from "../api";
 
 export default function ForgotPassword() {
@@ -16,49 +17,81 @@ export default function ForgotPassword() {
 
     try {
       const res = await API.post("/auth/forgotpassword", { email });
-      setMsg(res.data.data);
+      setMsg(res.data?.data || "Password reset instructions sent to your email.");
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      setError(err.response?.data?.message || "Something went wrong. Please check your email.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center p-4">
-      <div className="glass-card w-full max-w-md p-8">
-        <p className="eyebrow mb-3 text-center">Account recovery</p><h2 className="editorial-title mb-6 text-center text-4xl font-semibold text-white">Forgot password?</h2>
+    <div className="flex min-h-[70vh] items-center justify-center p-4 page-fade-in">
+      <div className="editorial-card w-full max-w-md p-8 sm:p-10 rounded-3xl shadow-card">
         
-        {msg && <div className="bg-green-500/10 text-green-400 p-3 rounded mb-4">{msg}</div>}
-        {error && <div className="bg-red-500/10 text-red-400 p-3 rounded mb-4">{error}</div>}
+        <div className="mb-6 text-center">
+          <span className="editorial-eyebrow mb-1.5 block">Account Recovery</span>
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--ink)] mb-2">
+            Forgot Password?
+          </h1>
+          <p className="text-xs text-[var(--ink-secondary)]">
+            Enter your registered email address and we'll send you a link to reset your credentials.
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {msg && (
+          <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 text-center">
+            {msg}
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 text-center">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-gray-400 mb-2">Email Address</label>
+            <label className="block text-xs font-mono text-[var(--ink-muted)] uppercase tracking-wider mb-1.5">
+              Email Address
+            </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition"
-              placeholder="Enter your email"
+              placeholder="you@example.com"
+              className="editorial-input"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition disabled:opacity-50"
+            className="btn-primary-editorial w-full py-3 text-sm disabled:opacity-50"
           >
-            {loading ? "Sending..." : "Send Reset Link"}
+            {loading ? (
+              <span>Sending Instructions...</span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <BiMailSend size={18} />
+                Send Reset Link
+              </span>
+            )}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <Link to="/login" className="text-gray-400 hover:text-white transition">
-            Back to Login
+        <div className="mt-8 text-center border-t border-[var(--line)] pt-4">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--ink-muted)] hover:text-[var(--ink)] transition"
+          >
+            <BiArrowBack size={14} />
+            <span>Return to Sign In</span>
           </Link>
         </div>
+
       </div>
     </div>
   );

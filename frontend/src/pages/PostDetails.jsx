@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import API from "../api";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -6,8 +6,23 @@ import { Pagination, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import { BiSolidLike, BiLike, BiCommentDetail, BiShare, BiLink, BiDotsVerticalRounded, BiEdit, BiTrash, BiSend } from "react-icons/bi";
+import {
+  BiHeart,
+  BiSolidHeart,
+  BiCommentDetail,
+  BiShareAlt,
+  BiBookmark,
+  BiSolidBookmark,
+  BiLink,
+  BiEdit,
+  BiTrash,
+  BiSend,
+  BiTimeFive,
+  BiArrowBack,
+  BiDotsHorizontalRounded
+} from "react-icons/bi";
 import ShareModal from "../components/ShareModal";
+import Spinner from "../components/Spinner";
 
 export default function PostDetails() {
   const { id } = useParams();
@@ -16,318 +31,582 @@ export default function PostDetails() {
   const [post, setPost] = useState(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [commentText, setCommentText] = useState("");
-  const [showComments, setShowComments] = useState(true); // Always show or default open
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [showMenu, setShowMenu] = useState(false); // Three dot menu
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
 
   const loggedUser = JSON.parse(localStorage.getItem("user") || "null");
 
-  // Fetch post
+  // Fetch post data
   useEffect(() => {
-    API
-      .get(`/posts/${id}`)
-      .then((res) => setPost(res.data))
-      .catch((err) => console.log(err));
+    API.get(`/posts/${id}`)
+      .then((res) => {
+        setPost(res.data);
+        const authorId = res.data?.author?._id;
+        if (loggedUser && authorId) {
+          const isFollowing = loggedUser.following?.some(
+            (fid) => (typeof fid === "string" ? fid : fid?._id || fid?.toString()) === authorId.toString()
+          );
+          setIsFollowingAuthor(Boolean(isFollowing));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load post:", err);
+      });
   }, [id]);
 
-  // Scroll progress bar
+  // Track reading progress
   useEffect(() => {
     const handleScroll = () => {
-       const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-       const progress = (window.scrollY / totalHeight) * 100;
-       setScrollProgress(progress);
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        const progress = (window.scrollY / totalHeight) * 100;
+        setScrollProgress(progress);
+      }
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (!post) return (
-     <div className="flex items-center justify-center min-h-screen">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#d9ff65] border-t-transparent"></div>
-     </div>
-  );
+  // Check bookmark status
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      setIsBookmarked(saved.includes(id));
+    } catch (e) {
+      setIsBookmarked(false);
+    }
+  }, [id]);
+
+  const toggleBookmark = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      let updated;
+      if (saved.includes(id)) {
+        updated = saved.filter((pid) => pid !== id);
+        setIsBookmarked(false);
+      } else {
+        updated = [...saved, id];
+        setIsBookmarked(true);
+      }
+      localStorage.setItem("bookmarked_posts", JSON.stringify(updated));
+      window.dispatchEvent(new Event("bookmarksUpdated"));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLike = async () => {
+    if (!loggedUser) return alert("Please sign in to like stories");
+
+    const prevPost = { ...post };
+    const userId = loggedUser._id || loggedUser.id;
+
+    const alreadyLiked = post.likes?.some(
+      (uid) => (uid?._id || uid)?.toString() === userId?.toString()
+    );
+
+    const newLikes = alreadyLiked
+      ? post.likes.filter((uid) => (uid?._id || uid)?.toString() !== userId?.toString())
+      : [...(post.likes || []), userId];
+
+    setPost({ ...post, likes: newLikes });
+
+    try {
+      await API.post(`/posts/${post._id}/like`);
+    } catch (err) {
+      console.error("Like failed:", err);
+      setPost(prevPost);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    if (!loggedUser) return alert("Please sign in to comment");
+
+    try {
+      await API.post(`/posts/${post._id}/comment`, { text: commentText.trim() });
+      setCommentText("");
+      // Refresh post to get populated comments
+      const refreshRes = await API.get(`/posts/${id}`);
+      setPost(refreshRes.data);
+    } catch (err) {
+      console.error("Comment failed:", err);
+      alert("Failed to submit comment");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this story?")) return;
+    try {
+      await API.delete(`/posts/${post._id}`);
+      navigate("/");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert(err.response?.data?.message || "Failed to delete");
+    }
+  };
+
+  const handleToggleFollowAuthor = async () => {
+    if (!loggedUser) {
+      navigate("/login");
+      return;
+    }
+
+    const authorId = post.author?._id;
+    if (!authorId) return;
+
+    const currentlyFollowing = isFollowingAuthor;
+    setIsFollowingAuthor(!currentlyFollowing);
+
+    // Update localStorage user
+    const currentFollowing = loggedUser.following || [];
+    let updated;
+    if (currentlyFollowing) {
+      updated = currentFollowing.filter(
+        (fid) => (typeof fid === "string" ? fid : fid?._id || fid?.toString()) !== authorId.toString()
+      );
+    } else {
+      updated = [...currentFollowing, authorId];
+    }
+    localStorage.setItem("user", JSON.stringify({ ...loggedUser, following: updated }));
+
+    try {
+      if (currentlyFollowing) {
+        await API.post(`/user/${authorId}/unfollow`);
+      } else {
+        await API.post(`/user/${authorId}/follow`);
+      }
+    } catch (err) {
+      console.error("Follow author failed:", err);
+      setIsFollowingAuthor(currentlyFollowing);
+      localStorage.setItem("user", JSON.stringify(loggedUser));
+    }
+  };
+
+  if (!post) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <Spinner />
+      </div>
+    );
+  }
 
   // Normalize media
   let mediaList = post.media || [];
   if (post.mediaUrl && mediaList.length === 0) {
-    mediaList = [{ url: post.mediaUrl, type: post.mediaType }];
+    mediaList = [{ url: post.mediaUrl, type: post.mediaType || "image" }];
   }
 
-
-  // Format text into clean paragraphs
-  const formattedContent = post.content
-    ?.split("\n")
-    .filter((p) => p.trim() !== "")
-    .map((p, i) => (
-      <p
-        key={i}
-        className="mb-6 text-lg font-normal leading-8 text-gray-300 md:text-xl md:leading-9"
-      >
-        {p}
-      </p>
-    ));
-
-  // --- ACTIONS ---
-
-  const handleLike = async () => {
-      if (!loggedUser) return alert("Please login to like");
-      
-      const prevPost = { ...post };
-      const userId = loggedUser._id || loggedUser.id;
-
-      // Optimistic Update
-      const alreadyLiked = post.likes.includes(userId);
-      const newLikes = alreadyLiked 
-          ? post.likes.filter(uid => uid !== userId)
-          : [...post.likes, userId];
-      
-      setPost({ ...post, likes: newLikes });
-
-      try {
-        await API.post(`/posts/${post._id}/like`);
-      } catch (err) {
-        console.error(err);
-        setPost(prevPost);
-      }
-  };
-
-  const handleCommentSubmit = async () => {
-      if (!commentText.trim()) return;
-      if (!loggedUser) return alert("Please login to comment");
-
-      try {
-          const res = await API.post(`/posts/${post._id}/comment`, { text: commentText });
-          // Ideally backend returns the new comment or updated post
-          // Simple re-fetch or manual append if we knew structure
-          // Let's re-fetch for simplicity or append optimistically if we trust the return
-          
-          // Optimistic append (assuming success)
-          const newComment = {
-              user: { name: loggedUser.name, _id: loggedUser._id || loggedUser.id },
-              text: commentText
-          };
-          
-          setPost({ ...post, comments: [...post.comments, newComment] });
-          setCommentText("");
-
-          // Re-fetch to be safe about user population
-          const refreshRes = await API.get(`/posts/${id}`);
-          setPost(refreshRes.data);
-
-      } catch (err) {
-          console.error(err);
-          alert("Failed to comment");
-      }
-  };
-
-  const handleDelete = async () => {
-      if (!confirm("Delete this article?")) return;
-      try {
-          await API.delete(`/posts/${post._id}`);
-          navigate("/");
-      } catch (err) {
-          console.error(err);
-          const msg = err.response?.data?.message || "Failed to delete";
-          alert(msg);
-      }
-  };
-
-  const copyLink = () => {
-    const link = window.location.href;
-    navigator.clipboard.writeText(link);
-    alert("Link copied!");
-  };
-
-  const isLiked = post.likes?.includes(loggedUser?._id || loggedUser?.id);
+  const isLiked = post.likes?.some(
+    (uid) => (uid?._id || uid)?.toString() === (loggedUser?._id || loggedUser?.id)?.toString()
+  );
   const isOwner = loggedUser && (loggedUser._id === post.author?._id || loggedUser.id === post.author?._id);
 
+  const readingTime = Math.max(
+    1,
+    Math.ceil((post.content?.split(/\s+/).length || 60) / 200)
+  );
+
+  // Formatted paragraphs
+  const paragraphs = (post.content || "")
+    .split("\n")
+    .map((p) => p.trim())
+    .filter(Boolean);
+
   return (
-    <div className="relative min-h-screen pb-16">
-      {/* Scroll progress */}
+    <div className="relative min-h-screen pb-24 page-fade-in">
+      
+      {/* Top Reading Progress Bar */}
       <div
-        className="fixed top-0 left-0 z-50 h-1 bg-[#d9ff65] transition-all duration-100"
+        className="fixed top-0 left-0 z-50 h-[3px] bg-[var(--accent)] transition-all duration-75"
         style={{ width: `${scrollProgress}%` }}
-      ></div>
+      />
 
-      <div className="mx-auto max-w-5xl px-0 pt-2 md:pt-4">
-        
-        {/* MEDIA CAROUSEL (HERO) */}
-        {mediaList.length > 0 && (
-           <div className="relative mb-8 overflow-hidden rounded-2xl border border-white/10 bg-black/30 md:mb-12">
-             <Swiper
-               modules={[Pagination, Navigation]}
-               pagination={{ clickable: true }}
-               navigation
-               className="w-full h-[300px] md:h-[500px]"
-             >
-               {mediaList.map((item, index) => (
-                 <SwiperSlide key={index} className="bg-black/80 flex items-center justify-center">
-                    {item.type === "video" ? (
-                       <video controls className="w-full h-full object-contain">
-                          <source src={item.url} />
-                       </video>
-                    ) : (
-                       <img src={item.url} alt="" className="w-full h-full object-contain" />
-                    )}
-                 </SwiperSlide>
-               ))}
-             </Swiper>
-           </div>
-        )}
-
-        {/* CONTENT WRAPPER */}
-        <div className="mx-auto max-w-3xl px-1 md:px-4">
-            {/* META */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                   <Link to={`/profile/${post.author?._id}`}>
-                      <img 
-                        src={post.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author?.name}`} 
-                        className="h-11 w-11 rounded-full border border-white/15 object-cover"
-                        alt="" 
-                      />
-                   </Link>
-                   <div>
-                      <h3 className="text-sm font-semibold text-white">{post.author?.name}</h3>
-                      <p className="text-xs text-gray-500">@{post.author?.username}</p>
-                   </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                    <span className="text-gray-500 text-sm hidden md:block">{new Date(post.createdAt).toLocaleDateString()}</span>
-                    
-                    {/* Three Dot Menu for Owner */}
-                    {isOwner && (
-                        <div className="relative">
-                            <button onClick={() => setShowMenu(!showMenu)} className="p-2 hover:bg-white/10 rounded-full transition">
-                                <BiDotsVerticalRounded size={24} className="text-gray-300" />
-                            </button>
-                            {showMenu && (
-                                <div className="absolute right-0 mt-2 w-40 bg-gray-900 border border-white/10 rounded-lg shadow-xl overflow-hidden z-50">
-                                    <button 
-                                        onClick={() => navigate(`/edit/${post._id}`)}
-                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-2 text-sm text-gray-300"
-                                    >
-                                        <BiEdit /> <span>Edit Post</span>
-                                    </button>
-                                    <button 
-                                        onClick={handleDelete}
-                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-2 text-sm text-red-400"
-                                    >
-                                        <BiTrash /> <span>Delete</span>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* TITLE */}
-            <p className="eyebrow mb-4">Published {new Date(post.createdAt).toLocaleDateString()}</p>
-            <h1 className="editorial-title mb-7 text-4xl font-semibold leading-[.98] text-white md:mb-10 md:text-6xl lg:text-7xl">
-               {post.title}
-            </h1>
-
-            {/* BODY */}
-            <article className="max-w-none mb-10 md:mb-14">
-               {formattedContent}
-            </article>
-
-            {/* INTERACTION BAR */}
-            <div className="mb-12 flex items-center justify-between rounded-xl border border-white/10 bg-white/[.03] px-4 py-3 md:px-5">
-                 <div className="flex space-x-6">
-                     <button 
-                       onClick={handleLike}
-                       className={`flex items-center space-x-2 text-xl transition ${isLiked ? "text-red-500" : "text-gray-400 hover:text-red-400"}`}
-                     >
-                       {isLiked ? <BiSolidLike /> : <BiLike />}
-                       <span>{post.likes?.length || 0}</span>
-                     </button>
-
-                     <button 
-                       onClick={() => document.getElementById("comments-section")?.scrollIntoView({ behavior: "smooth" })}
-                       className="flex items-center space-x-2 text-xl text-gray-400 hover:text-indigo-400 transition"
-                     >
-                       <BiCommentDetail />
-                       <span>{post.comments?.length || 0}</span>
-                     </button>
-
-                     <button onClick={() => setIsShareOpen(true)} className="flex items-center space-x-2 text-xl text-gray-400 hover:text-blue-400 transition">
-                       <BiShare />
-                     </button>
-                 </div>
-                 
-                 <button onClick={copyLink} className="text-gray-400 hover:text-white transition p-2 rounded-full hover:bg-white/10">
-                   <BiLink size={24}/>
-                 </button>
-            </div>
-
-            {/* COMMENTS SECTION */}
-            <div id="comments-section" className="mb-20">
-                <p className="eyebrow mb-3">Conversation</p>
-                <h3 className="editorial-title mb-8 text-3xl font-semibold text-white">Comments ({post.comments?.length || 0})</h3>
-                
-                {/* Add Comment */}
-                <div className="flex space-x-4 mb-10">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#d9ff65] font-bold text-[#202318]">
-                        {loggedUser?.name?.charAt(0) || "?"}
-                    </div>
-                    <div className="flex-1">
-                        <textarea
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            placeholder="Add to the discussion..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500 min-h-[100px]"
-                        />
-                        <div className="flex justify-end mt-2">
-                            <button 
-                                onClick={handleCommentSubmit}
-                                className="flex items-center space-x-2 rounded-full px-5 py-2.5 text-sm btn"
-                            >
-                                <BiSend /> <span>Post Comment</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* List Comments */}
-                <div className="space-y-8">
-                    {post.comments?.length > 0 ? (
-                        post.comments.map((c, i) => (
-                            <div key={i} className="flex space-x-4 animate-fade-in">
-                                <Link to={`/profile/${c.user?._id}`}>
-                                    <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-sm">
-                                        {c.user?.name?.charAt(0) || "U"}
-                                    </div>
-                                </Link>
-                                <div>
-                                    <div className="flex items-center space-x-2 mb-1">
-                                        <span className="font-bold text-white">{c.user?.name}</span>
-                                        <span className="text-gray-500 text-xs">• {new Date().toLocaleDateString()}</span> 
-                                    </div>
-                                    <p className="text-gray-300 leading-relaxed">{c.text}</p>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-gray-500 text-center py-10">No comments yet. Be the first to share your thoughts!</p>
-                    )}
-                </div>
-            </div>
-
-            {/* FOOTER NAV */}
-            <div className="mt-8 pt-8 border-t border-gray-800 text-center">
-               <Link to="/" className="text-indigo-400 hover:text-indigo-300 transition">← Back to Feed</Link>
-            </div>
-        </div>
-
+      {/* Back to feed header link */}
+      <div className="mx-auto max-w-3xl pt-2 pb-6">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-secondary)] hover:text-[var(--accent)] transition"
+        >
+          <BiArrowBack size={15} />
+          <span>Back to Feed</span>
+        </Link>
       </div>
 
+      <article className="mx-auto max-w-3xl">
+        
+        {/* EDITORIAL ARTICLE HEADER */}
+        <header className="mb-8 sm:mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="editorial-eyebrow">Essay</span>
+            <span className="text-[11px] text-[var(--ink-muted)]">•</span>
+            <span className="text-xs font-mono text-[var(--ink-muted)] flex items-center gap-1">
+              <BiTimeFive size={13} /> {readingTime} min read
+            </span>
+          </div>
+
+          <h1 className="font-serif font-bold text-3xl sm:text-5xl lg:text-6xl text-[var(--ink)] leading-[1.08] tracking-tight mb-6">
+            {post.title}
+          </h1>
+
+          {/* AUTHOR METADATA ROW */}
+          <div className="flex items-center justify-between border-y border-[var(--line)] py-4 my-6">
+            <div className="flex items-center gap-3.5">
+              <Link to={`/profile/${post.author?._id}`}>
+                <div className="h-12 w-12 rounded-full overflow-hidden bg-[var(--surface-raised)] border border-[var(--line-strong)]">
+                  {post.author?.avatar ? (
+                    <img
+                      src={post.author.avatar}
+                      alt={post.author.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center font-bold text-base text-[var(--accent)]">
+                      {(post.author?.name?.charAt(0) || "U").toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              </Link>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/profile/${post.author?._id}`}
+                    className="font-semibold text-sm text-[var(--ink)] hover:text-[var(--accent)] transition"
+                  >
+                    {post.author?.name || "Writer"}
+                  </Link>
+                  {loggedUser && !isOwner && (
+                    <button
+                      type="button"
+                      onClick={handleToggleFollowAuthor}
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full transition ${
+                        isFollowingAuthor
+                          ? "text-[var(--ink-muted)] border border-[var(--line)] hover:text-rose-400 hover:border-rose-500/40"
+                          : "text-[var(--accent)] hover:underline"
+                      }`}
+                    >
+                      {isFollowingAuthor ? "Following" : "Follow"}
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--ink-muted)]">
+                  Published on {new Date(post.createdAt).toLocaleDateString(undefined, {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            </div>
+
+            {/* Author Edit/Delete Menu */}
+            {isOwner && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-2 rounded-full hover:bg-[var(--surface-hover)] text-[var(--ink-secondary)] transition"
+                  title="Post actions"
+                  aria-label="Story actions"
+                >
+                  <BiDotsHorizontalRounded size={22} />
+                </button>
+
+                {showMenu && (
+                  <div className="absolute right-0 mt-2 w-40 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-card z-30 page-fade-in">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/edit/${post._id}`)}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-[var(--surface-hover)] transition"
+                    >
+                      <BiEdit size={16} />
+                      <span>Edit Story</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition"
+                    >
+                      <BiTrash size={16} />
+                      <span>Delete Story</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* FEATURED MEDIA GALLERY / SWIPER (HERO) */}
+        {mediaList.length > 0 && (
+          <div className="mb-10 overflow-hidden rounded-3xl border border-[var(--line)] bg-black/40 shadow-card">
+            <Swiper
+              modules={[Pagination, Navigation]}
+              pagination={{ clickable: true }}
+              navigation={mediaList.length > 1}
+              className="w-full h-80 sm:h-[440px] md:h-[500px]"
+            >
+              {mediaList.map((item, index) => (
+                <SwiperSlide key={index} className="flex items-center justify-center bg-black/30">
+                  {item.type === "video" ? (
+                    <video controls className="w-full h-full object-contain">
+                      <source src={item.url} />
+                    </video>
+                  ) : (
+                    <img
+                      src={item.url}
+                      alt={`Illustration ${index + 1}`}
+                      className="h-full w-full object-contain"
+                    />
+                  )}
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
+        {/* ARTICLE BODY */}
+        <div className="font-serif text-lg sm:text-xl text-[var(--ink)] leading-[1.8] sm:leading-[1.9] space-y-6 mb-12 selection:bg-[var(--accent)]">
+          {paragraphs.map((para, i) => (
+            <p key={i} className="text-justify sm:text-left">
+              {i === 0 ? (
+                <span className="float-left text-5xl sm:text-6xl font-serif font-bold text-[var(--ink)] mr-3 leading-none select-none">
+                  {para.charAt(0)}
+                </span>
+              ) : null}
+              {i === 0 ? para.slice(1) : para}
+            </p>
+          ))}
+        </div>
+
+        {/* INTERACTIVE ACTIONS BAR */}
+        <div className="sticky bottom-4 z-20 my-10 flex items-center justify-between rounded-full border border-[var(--line-strong)] bg-[var(--surface)]/95 px-6 py-3 shadow-card backdrop-blur-md">
+          <div className="flex items-center gap-6">
+            
+            {/* Like */}
+            <button
+              type="button"
+              onClick={handleLike}
+              className={`flex items-center gap-2 text-sm font-semibold transition ${
+                isLiked ? "text-rose-500" : "text-[var(--ink-secondary)] hover:text-rose-400"
+              }`}
+            >
+              {isLiked ? <BiSolidHeart size={21} /> : <BiHeart size={21} />}
+              <span>{post.likes?.length || 0}</span>
+            </button>
+
+            {/* Jump to comments */}
+            <button
+              type="button"
+              onClick={() =>
+                document.getElementById("discussion")?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="flex items-center gap-2 text-sm text-[var(--ink-secondary)] hover:text-[var(--accent)] transition"
+            >
+              <BiCommentDetail size={21} />
+              <span>{post.comments?.length || 0}</span>
+            </button>
+
+            {/* Share */}
+            <button
+              type="button"
+              onClick={() => setIsShareOpen(true)}
+              className="p-1 text-[var(--ink-secondary)] hover:text-sky-400 transition"
+              title="Share story"
+            >
+              <BiShareAlt size={21} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Bookmark */}
+            <button
+              type="button"
+              onClick={toggleBookmark}
+              className={`p-1 transition ${
+                isBookmarked ? "text-[var(--accent)]" : "text-[var(--ink-secondary)] hover:text-[var(--ink)]"
+              }`}
+              title={isBookmarked ? "Remove bookmark" : "Save story"}
+            >
+              {isBookmarked ? <BiSolidBookmark size={21} /> : <BiBookmark size={21} />}
+            </button>
+
+            {/* Copy Link */}
+            <button
+              type="button"
+              onClick={copyLink}
+              className="p-1 text-[var(--ink-secondary)] hover:text-[var(--ink)] transition relative"
+              title="Copy link"
+            >
+              <BiLink size={21} />
+              {copied && (
+                <span className="absolute -top-7 right-0 text-[10px] font-mono bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--accent)] px-2 py-0.5 rounded shadow">
+                  Copied!
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* AUTHOR PROFILE FOOTER CARD */}
+        <div className="editorial-card rounded-3xl p-6 sm:p-8 my-12 flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+          <Link to={`/profile/${post.author?._id}`} className="shrink-0">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-[var(--surface-raised)] border border-[var(--line-strong)]">
+              {post.author?.avatar ? (
+                <img
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center font-bold text-xl text-[var(--accent)]">
+                  {(post.author?.name?.charAt(0) || "U").toUpperCase()}
+                </span>
+              )}
+            </div>
+          </Link>
+
+          <div className="flex-1 min-w-0">
+            <span className="editorial-eyebrow mb-1 block">Written by</span>
+            <Link
+              to={`/profile/${post.author?._id}`}
+              className="font-serif font-bold text-xl text-[var(--ink)] hover:text-[var(--accent)] transition"
+            >
+              {post.author?.name || "Author"}
+            </Link>
+            <p className="text-xs text-[var(--ink-muted)] mb-3">
+              @{post.author?.username || "creator"}
+            </p>
+            <p className="text-xs text-[var(--ink-secondary)] leading-relaxed mb-4">
+              Member and writer publishing stories, essays, and ideas on BlogSphere.
+            </p>
+
+            {loggedUser && !isOwner && (
+              <button
+                type="button"
+                onClick={handleToggleFollowAuthor}
+                className="btn-secondary-editorial text-xs py-1.5 px-4"
+              >
+                {isFollowingAuthor ? "Following Author" : "Follow Author"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* COMMENTS / DISCUSSION SECTION */}
+        <section id="discussion" className="mt-14 pt-8 border-t border-[var(--line)]">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--ink)]">
+              Responses ({post.comments?.length || 0})
+            </h2>
+            <span className="text-xs text-[var(--ink-muted)] font-mono">Join the conversation</span>
+          </div>
+
+          {/* Comment Form */}
+          {loggedUser ? (
+            <form onSubmit={handleCommentSubmit} className="mb-10 editorial-card rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-7 w-7 rounded-full bg-[var(--accent)] text-[var(--accent-ink)] font-bold flex items-center justify-center text-xs shrink-0">
+                  {(loggedUser.name?.charAt(0) || "U").toUpperCase()}
+                </div>
+                <span className="font-semibold text-xs text-[var(--ink)]">{loggedUser.name}</span>
+              </div>
+
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="What are your thoughts on this story?"
+                rows={3}
+                className="w-full bg-[var(--surface-hover)] border border-[var(--line)] rounded-xl p-3 text-sm text-[var(--ink)] placeholder-[var(--ink-muted)] outline-none focus:border-[var(--accent)] resize-none"
+              />
+
+              <div className="flex justify-end mt-3">
+                <button
+                  type="submit"
+                  disabled={!commentText.trim()}
+                  className="btn-primary-editorial text-xs py-2 px-4 disabled:opacity-50"
+                >
+                  <BiSend size={15} />
+                  <span>Respond</span>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="editorial-card rounded-2xl p-6 text-center mb-10">
+              <p className="text-sm text-[var(--ink-secondary)] mb-3">
+                Sign in to join the discussion and share your thoughts.
+              </p>
+              <Link to="/login" className="btn-primary-editorial text-xs">
+                Sign in to Comment
+              </Link>
+            </div>
+          )}
+
+          {/* Comments List */}
+          <div className="space-y-4">
+            {post.comments && post.comments.length > 0 ? (
+              post.comments.map((c, idx) => (
+                <div
+                  key={c._id || idx}
+                  className="editorial-card rounded-2xl p-4 sm:p-5 border border-[var(--line)]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <Link to={`/profile/${c.user?._id || c.user}`}>
+                        <div className="h-8 w-8 rounded-full bg-[var(--surface-raised)] border border-[var(--line)] flex items-center justify-center text-xs font-bold text-[var(--accent)] overflow-hidden">
+                          {c.user?.avatar ? (
+                            <img src={c.user.avatar} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            ((c.user?.name || "R").charAt(0)).toUpperCase()
+                          )}
+                        </div>
+                      </Link>
+                      <div>
+                        <Link
+                          to={`/profile/${c.user?._id || c.user}`}
+                          className="font-semibold text-xs text-[var(--ink)] hover:text-[var(--accent)] transition"
+                        >
+                          {c.user?.name || "Reader"}
+                        </Link>
+                        <p className="text-[10px] text-[var(--ink-muted)]">
+                          {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "Recently"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-[var(--ink-secondary)] leading-relaxed pl-10">
+                    {c.text}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-sm text-[var(--ink-muted)] py-10 italic">
+                No responses yet. Start the conversation above.
+              </p>
+            )}
+          </div>
+        </section>
+
+      </article>
+
+      {/* Share Modal */}
       {isShareOpen && (
         <ShareModal post={post} onClose={() => setIsShareOpen(false)} />
       )}
+
     </div>
   );
 }

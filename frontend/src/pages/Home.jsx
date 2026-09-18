@@ -1,28 +1,42 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { BiCompass, BiTrendingUp, BiUserCheck, BiPlus } from "react-icons/bi";
+import { HiSparkles } from "react-icons/hi2";
 import API from "../api";
 import PostCard from "../components/PostCard";
+import FeaturedHero from "../components/FeaturedHero";
 import Spinner from "../components/Spinner";
-import { Link } from "react-router-dom";
 
-export default function Home() {
+export default function Home({ onPostsLoaded }) {
   const [posts, setPosts] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("forYou"); // 'forYou' | 'following' | 'trending'
 
-  // Parse user and safely access properties
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  // Fetch all posts
+  // Fetch all posts from existing API
   const fetchPosts = async () => {
     setLoading(true);
     try {
       const res = await API.get("/posts");
-      const data = res.data.map((p) => ({
-        ...p,
-        canDelete: user && p.author && p.author._id === (user._id || user.id), 
-        // Logic to check if we are following
-        isFollowing: user?.following?.includes(p.author?._id)
-      }));
+      const currentUserId = user?._id || user?.id;
+
+      const data = (res.data || []).map((p) => {
+        const authorId = p.author?._id || p.author?.id || p.author;
+        return {
+          ...p,
+          canDelete: Boolean(user && authorId && authorId.toString() === currentUserId?.toString()),
+          isFollowing: Boolean(
+            user?.following?.some((id) => {
+              const fid = typeof id === "string" ? id : id?._id || id?.toString();
+              return fid === authorId?.toString();
+            })
+          ),
+        };
+      });
+
       setPosts(data);
+      if (onPostsLoaded) onPostsLoaded(data);
     } catch (err) {
       console.error("Fetch Posts Error:", err);
     } finally {
@@ -32,39 +46,41 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts();
-    if(user) refreshUser();
+    if (user) refreshUser();
   }, []);
 
   // Update user in local storage to keep "following" list fresh
   const refreshUser = async () => {
-      if(!user) return;
-      try {
-          const res = await API.get(`/user/${user._id || user.id}`);
-          localStorage.setItem("user", JSON.stringify(res.data));
-          // Also refresh posts to update UI
-          fetchPosts(); 
-      } catch(err) {
-          console.error(err);
-      }
+    if (!user) return;
+    try {
+      const res = await API.get(`/user/${user._id || user.id}`);
+      localStorage.setItem("user", JSON.stringify(res.data));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleLike = async (id) => {
-    const prevPosts = posts;
-    if (!user) return alert("Please login to like posts");
+    if (!user) return alert("Please sign in to like stories");
 
     const userId = user._id || user.id;
+    const prevPosts = posts;
 
     // Optimistic Update
-    setPosts(prevPosts.map(p => {
+    setPosts(
+      prevPosts.map((p) => {
         if (p._id === id) {
-            const alreadyLiked = p.likes.includes(userId);
-            const newLikes = alreadyLiked 
-                ? p.likes.filter(uid => uid !== userId)
-                : [...p.likes, userId];
-            return { ...p, likes: newLikes };
+          const alreadyLiked = p.likes?.some(
+            (uid) => (uid?._id || uid)?.toString() === userId?.toString()
+          );
+          const newLikes = alreadyLiked
+            ? p.likes.filter((uid) => (uid?._id || uid)?.toString() !== userId?.toString())
+            : [...(p.likes || []), userId];
+          return { ...p, likes: newLikes };
         }
         return p;
-    }));
+      })
+    );
 
     try {
       await API.post(`/posts/${id}/like`);
@@ -75,7 +91,7 @@ export default function Home() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this post?")) return;
+    if (!confirm("Are you sure you want to delete this story?")) return;
     try {
       await API.delete(`/posts/${id}`);
       fetchPosts();
@@ -96,109 +112,224 @@ export default function Home() {
   };
 
   const handleFollow = async (authorId) => {
-      // Optimistic Update
-      const prevPosts = posts;
-      const prevUser = user;
-      
-      // Update local posts state
-      setPosts(posts.map(p => 
-        p.author._id === authorId 
-          ? { ...p, isFollowing: true } 
-          : p
-      ));
+    const prevPosts = posts;
+    const prevUser = user;
 
-      // Update local user state if exists
-      if (user) {
-        const updatedUser = { ...user, following: [...(user.following || []), authorId] };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      }
+    setPosts(
+      posts.map((p) =>
+        p.author?._id === authorId ? { ...p, isFollowing: true } : p
+      )
+    );
 
-      try {
-          await API.post(`/user/${authorId}/follow`);
-          // user data is already updated in localStorage optimistically, but we might want to fetch fresh data eventually
-          // refreshUser(); 
-      } catch (err) {
-          console.error(err);
-          alert(err.response?.data?.message || "Follow failed");
-          // Revert on failure
-          setPosts(prevPosts);
-          if (prevUser) localStorage.setItem("user", JSON.stringify(prevUser));
-      }
+    if (user) {
+      const updatedUser = {
+        ...user,
+        following: [...(user.following || []), authorId],
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+
+    try {
+      await API.post(`/user/${authorId}/follow`);
+    } catch (err) {
+      console.error("Follow error:", err);
+      setPosts(prevPosts);
+      if (prevUser) localStorage.setItem("user", JSON.stringify(prevUser));
+    }
   };
 
   const handleUnfollow = async (authorId) => {
-      // Optimistic Update
-      const prevPosts = posts;
-      const prevUser = user;
+    const prevPosts = posts;
+    const prevUser = user;
 
-      setPosts(posts.map(p => 
-        p.author._id === authorId 
-          ? { ...p, isFollowing: false } 
-          : p
-      ));
+    setPosts(
+      posts.map((p) =>
+        p.author?._id === authorId ? { ...p, isFollowing: false } : p
+      )
+    );
 
-      if (user) {
-         const updatedUser = { 
-           ...user, 
-           following: (user.following || []).filter(id => id !== authorId) 
-         };
-         localStorage.setItem("user", JSON.stringify(updatedUser));
-      }
+    if (user) {
+      const updatedUser = {
+        ...user,
+        following: (user.following || []).filter(
+          (id) => (typeof id === "string" ? id : id?._id || id?.toString()) !== authorId
+        ),
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
 
-      try {
-          await API.post(`/user/${authorId}/unfollow`);
-      } catch (err) {
-          console.error(err);
-          alert(err.response?.data?.message || "Unfollow failed");
-          setPosts(prevPosts);
-          if (prevUser) localStorage.setItem("user", JSON.stringify(prevUser));
-      }
+    try {
+      await API.post(`/user/${authorId}/unfollow`);
+    } catch (err) {
+      console.error("Unfollow error:", err);
+      setPosts(prevPosts);
+      if (prevUser) localStorage.setItem("user", JSON.stringify(prevUser));
+    }
   };
 
+  // Filter and sort posts by active tab
+  const displayedPosts = useMemo(() => {
+    if (!posts) return [];
+
+    if (activeTab === "following") {
+      if (!user) return [];
+      return posts.filter((p) => {
+        const aid = p.author?._id || p.author?.id || p.author;
+        return user.following?.some(
+          (id) => (typeof id === "string" ? id : id?._id || id?.toString()) === aid?.toString()
+        );
+      });
+    }
+
+    if (activeTab === "trending") {
+      return [...posts].sort((a, b) => {
+        const scoreA = (a.likes?.length || 0) * 2 + (a.comments?.length || 0);
+        const scoreB = (b.likes?.length || 0) * 2 + (b.comments?.length || 0);
+        return scoreB - scoreA;
+      });
+    }
+
+    // Default: For You (all posts by createdAt)
+    return posts;
+  }, [posts, activeTab, user]);
+
   return (
-    <>
-      <header className="mb-8 border-b border-white/10 pb-8 md:mb-10 md:pb-10">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+    <div className="w-full page-fade-in">
+      
+      {/* Editorial Header & Welcome */}
+      <div className="mb-6 sm:mb-8 border-b border-[var(--line)] pb-5 sm:pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="eyebrow mb-3">The community journal</p>
-            <h1 className="editorial-title mb-3 text-5xl font-semibold leading-none text-[#f5f3ed] md:text-6xl">Stories &amp; ideas</h1>
-            <p className="max-w-xl text-base leading-relaxed text-gray-400 md:text-lg">A community to share your journey through images, videos, and words.</p>
+            <span className="editorial-eyebrow mb-1.5 block">
+              The Daily Edition
+            </span>
+            <h1 className="font-serif font-bold text-3xl sm:text-4xl lg:text-5xl text-[var(--ink)] tracking-tight">
+              Stories &amp; Perspective
+            </h1>
+            <p className="mt-1 text-sm text-[var(--ink-secondary)] max-w-xl leading-relaxed">
+              Explore thoughtful essays, visual narratives, and insights published by creative thinkers.
+            </p>
           </div>
-          <Link to="/create" className="inline-flex shrink-0 items-center justify-center rounded-full px-5 py-3 text-sm btn">Write a story</Link>
+
+          <Link
+            to="/create"
+            className="sm:hidden btn-primary-editorial text-xs py-2 w-full justify-center"
+          >
+            <BiPlus size={16} />
+            <span>Write a Story</span>
+          </Link>
         </div>
-      </header>
+
+        {/* FEED TABS */}
+        <div className="flex items-center gap-1 sm:gap-2 mt-6 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActiveTab("forYou")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
+              activeTab === "forYou"
+                ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
+                : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
+            }`}
+          >
+            <HiSparkles size={15} />
+            <span>For You</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("following")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
+              activeTab === "following"
+                ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
+                : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
+            }`}
+          >
+            <BiUserCheck size={15} />
+            <span>Following</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("trending")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
+              activeTab === "trending"
+                ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
+                : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
+            }`}
+          >
+            <BiTrendingUp size={15} />
+            <span>Trending</span>
+          </button>
+        </div>
+      </div>
 
       {loading ? (
         <Spinner />
       ) : (
-        <div>
-          <div className="mb-5 flex items-center justify-between"><p className="text-sm font-medium text-gray-300">Latest from the community</p><span className="eyebrow text-gray-500">{posts?.length || 0} stories</span></div>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {posts && posts.length ? (
-            posts.map((p) => (
-              <PostCard
-                key={p._id}
-                post={p}
-                currentUser={user}
-                onLike={handleLike}
-                onDelete={handleDelete}
-                onAddComment={handleAddComment}
-                onFollow={handleFollow}
-                onUnfollow={handleUnfollow}
-              />
-            ))
+        <>
+          {/* FEATURED STORY SPOTLIGHT (Shown on 'For You' tab if stories exist) */}
+          {activeTab === "forYou" && posts && posts.length > 0 && (
+            <FeaturedHero posts={posts} />
+          )}
+
+          {/* MAIN POST STREAM */}
+          {displayedPosts && displayedPosts.length > 0 ? (
+            <div className="space-y-6">
+              {displayedPosts.map((post) => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  currentUser={user}
+                  onLike={handleLike}
+                  onDelete={handleDelete}
+                  onAddComment={handleAddComment}
+                  onFollow={handleFollow}
+                  onUnfollow={handleUnfollow}
+                />
+              ))}
+            </div>
           ) : (
-            <div className="col-span-full">
-              <div className="rounded-2xl border border-dashed border-white/15 bg-white/[.025] py-20 text-center">
-                <h3 className="text-xl font-semibold text-white mb-2">No posts yet</h3>
-                <p className="text-gray-400 mb-6">Be the first to share something amazing!</p>
-                <Link to="/create" className="rounded-full px-5 py-2.5 text-sm btn">Write a post</Link>
+            <div className="editorial-card rounded-3xl p-10 sm:p-16 text-center my-6">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-raised)] border border-[var(--line-strong)] text-2xl text-[var(--accent)] mb-4">
+                ✦
               </div>
+
+              {activeTab === "following" ? (
+                <div>
+                  <h3 className="font-serif font-bold text-xl sm:text-2xl text-[var(--ink)] mb-2">
+                    No stories from followed writers yet
+                  </h3>
+                  <p className="text-sm text-[var(--ink-secondary)] max-w-md mx-auto mb-6 leading-relaxed">
+                    {user
+                      ? "You aren't following anyone yet or your connections haven't published recently. Discover writers on the right rail or Explore tab to curate your feed."
+                      : "Sign in to follow your favorite writers and see their latest stories here."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("forYou")}
+                    className="btn-secondary-editorial text-xs"
+                  >
+                    Browse For You Feed
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="font-serif font-bold text-xl sm:text-2xl text-[var(--ink)] mb-2">
+                    Start the conversation
+                  </h3>
+                  <p className="text-sm text-[var(--ink-secondary)] max-w-md mx-auto mb-6 leading-relaxed">
+                    Be the first to publish a thoughtful piece on BlogSphere. Share your experiences, tutorials, or creative work.
+                  </p>
+                  <Link to="/create" className="btn-primary-editorial text-xs">
+                    Write First Story
+                  </Link>
+                </div>
+              )}
             </div>
           )}
-          </div>
-        </div>
+        </>
       )}
-    </>
+
+    </div>
   );
 }

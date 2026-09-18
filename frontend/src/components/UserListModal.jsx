@@ -1,53 +1,76 @@
-// src/components/UserListModal.jsx
 import React from "react";
 import { Link } from "react-router-dom";
+import { BiX } from "react-icons/bi";
 
 export default function UserListModal({ title = "Users", users = [], onClose = () => {} }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#20211f] p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="editorial-title text-2xl font-semibold text-white">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 page-fade-in">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-6 shadow-card">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-[var(--line)]">
+          <h3 className="font-serif font-bold text-xl text-[var(--ink)]">{title}</h3>
           <button
+            type="button"
             onClick={onClose}
-            className="text-indigo-200 hover:text-white px-2 py-1 rounded"
+            className="p-1.5 rounded-full text-[var(--ink-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
             aria-label="Close"
           >
-            ✕
+            <BiX size={22} />
           </button>
         </div>
 
-        <div className="max-h-72 overflow-y-auto space-y-3">
+        {/* User List */}
+        <div className="max-h-80 overflow-y-auto space-y-2 py-3 pr-1">
           {users && users.length ? (
             users.map((u) => (
               <Link
                 key={u._id || u.id}
                 to={`/profile/${u._id || u.id}`}
                 onClick={onClose}
-                className="block p-3 rounded bg-white/5 hover:bg-white/10 transition"
+                className="flex items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface-hover)] transition group"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-semibold text-white">
-                    {(u.name || "U").charAt(0).toUpperCase()}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-full bg-[var(--surface-raised)] border border-[var(--line)] flex items-center justify-center text-sm font-bold text-[var(--accent)] shrink-0 overflow-hidden">
+                    {u.avatar ? (
+                      <img src={u.avatar} alt={u.name} className="h-full w-full object-cover" />
+                    ) : (
+                      (u.name || "U").charAt(0).toUpperCase()
+                    )}
                   </div>
-                  <div>
-                    <div className="font-semibold text-white">{u.name || u.username || "Unknown"}</div>
-                    <div className="text-sm text-indigo-300">@{u.username || u.email || "unknown"}</div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-[var(--ink)] group-hover:text-[var(--accent)] transition truncate">
+                      {u.name || u.username || "Member"}
+                    </p>
+                    <p className="text-xs text-[var(--ink-muted)] truncate">
+                      @{u.username || "member"}
+                    </p>
                   </div>
                 </div>
+
+                <span className="text-xs font-semibold text-[var(--accent)] opacity-0 group-hover:opacity-100 transition">
+                  View →
+                </span>
               </Link>
             ))
           ) : (
-            <div className="text-indigo-300">No users found</div>
+            <div className="text-center py-8 text-xs text-[var(--ink-muted)] italic">
+              No members to display
+            </div>
           )}
         </div>
 
-        <button
-          onClick={onClose}
-          className="mt-4 w-full py-2 rounded bg-white/10 text-white hover:bg-white/20"
-        >
-          Close
-        </button>
+        {/* Footer */}
+        <div className="pt-3 border-t border-[var(--line)]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-secondary-editorial w-full py-2.5 text-xs"
+          >
+            Close
+          </button>
+        </div>
+
       </div>
     </div>
   );

@@ -1,146 +1,200 @@
 import React, { useEffect, useState } from "react";
-import API from "../api";
 import { Link } from "react-router-dom";
-import { FaHeart, FaComment, FaUserPlus, FaRegNewspaper, FaClock } from "react-icons/fa";
-import { motion } from "framer-motion";
+import {
+  BiHeart,
+  BiCommentDetail,
+  BiUserPlus,
+  BiNews,
+  BiBell,
+  BiTimeFive
+} from "react-icons/bi";
+import API from "../api";
+import Spinner from "../components/Spinner";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  const [filter, setFilter] = useState("all");
 
   const fetchNotifications = async () => {
     try {
       const res = await API.get("/notifications");
-      setNotifications(res.data);
-      
-      // Mark as read immediately if there are unread items
-      const hasUnread = res.data.some(n => !n.read);
+      const list = res.data || [];
+      setNotifications(list);
+
+      const hasUnread = list.some((n) => !n.read);
       if (hasUnread) {
-          await API.put("/notifications/read");
-          // Dispatch event to update Navbar badges immediately
-          window.dispatchEvent(new Event("refreshCounts"));
+        await API.put("/notifications/read");
+        window.dispatchEvent(new Event("refreshCounts"));
       }
     } catch (err) {
-      console.error(err);
+      console.error("Notifications fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getIcon = (type) => {
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const getNotificationIcon = (type) => {
     switch (type) {
-      case "like": return <FaHeart className="text-red-500 text-xl" />;
-      case "comment": return <FaComment className="text-blue-500 text-xl" />;
-      case "follow": return <FaUserPlus className="text-green-500 text-xl" />;
-      case "friend_post": return <FaRegNewspaper className="text-purple-500 text-xl" />;
-      default: return <FaBell className="text-gray-400 text-xl" />;
+      case "like":
+        return <BiHeart className="text-rose-500" size={18} />;
+      case "comment":
+        return <BiCommentDetail className="text-sky-400" size={18} />;
+      case "follow":
+        return <BiUserPlus className="text-emerald-400" size={18} />;
+      case "friend_post":
+        return <BiNews className="text-[var(--accent)]" size={18} />;
+      default:
+        return <BiBell className="text-[var(--ink-muted)]" size={18} />;
     }
   };
 
-  const getMessage = (n) => {
-      switch(n.type) {
-          case "like": return "liked your post";
-          case "comment": return "commented on your post";
-          case "follow": return "started following you";
-          case "friend_post": return "posted a new update";
-          default: return "interacted with you";
-      }
+  const getActionText = (n) => {
+    switch (n.type) {
+      case "like":
+        return "liked your story";
+      case "comment":
+        return "commented on your story";
+      case "follow":
+        return "started following you";
+      case "friend_post":
+        return "published a new story";
+      default:
+        return "interacted with you";
+    }
   };
 
+  const filtered = notifications.filter((n) => {
+    if (filter === "all") return true;
+    if (filter === "likes") return n.type === "like";
+    if (filter === "comments") return n.type === "comment";
+    if (filter === "follows") return n.type === "follow";
+    return true;
+  });
+
   return (
-    <div className="max-w-3xl mx-auto p-4 md:p-6 pb-24">
-      <div className="mb-8 flex items-center justify-between">
-          <div><p className="eyebrow mb-2">Your activity</p><h2 className="editorial-title text-4xl font-semibold text-white">Notifications</h2></div>
-          <span className="bg-white/10 px-3 py-1 rounded-full text-xs text-indigo-300 border border-white/5">
-              {notifications.filter(n => !n.read).length} New
-          </span>
-      </div>
+    <div className="w-full max-w-3xl mx-auto page-fade-in pb-20">
       
-      {loading ? (
-        <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
+      {/* Header */}
+      <div className="mb-6 border-b border-[var(--line)] pb-5">
+        <span className="editorial-eyebrow mb-1.5 block">Activity Stream</span>
+        <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[var(--ink)] tracking-tight">
+          Notifications
+        </h1>
+        <p className="mt-1 text-sm text-[var(--ink-secondary)]">
+          Stay informed about who is engaging with your writing and stories.
+        </p>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-2 mt-5 overflow-x-auto no-scrollbar">
+          {[
+            { label: "All Activity", value: "all" },
+            { label: "Likes", value: "likes" },
+            { label: "Comments", value: "comments" },
+            { label: "Followers", value: "follows" },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setFilter(tab.value)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
+                filter === tab.value
+                  ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
+                  : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      ) : notifications.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/15 bg-white/[.025] py-20 text-center">
-          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaRegNewspaper className="text-2xl text-gray-500" />
+      </div>
+
+      {loading ? (
+        <Spinner />
+      ) : filtered.length === 0 ? (
+        <div className="editorial-card rounded-3xl p-12 text-center my-6">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-raised)] border border-[var(--line-strong)] text-2xl text-[var(--ink-muted)] mb-3">
+            <BiBell size={24} />
           </div>
-          <p className="text-gray-400 text-lg">No notifications yet</p>
-          <p className="text-gray-600 text-sm mt-2">When people interact with you, it will show up here.</p>
+          <h3 className="font-serif font-bold text-xl text-[var(--ink)] mb-1">
+            No notifications yet
+          </h3>
+          <p className="text-xs text-[var(--ink-muted)] max-w-sm mx-auto">
+            When people like your stories, leave thoughtful responses, or follow your profile, you'll see them here.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {notifications.map((n, i) => (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              key={n._id} 
-              className={`relative overflow-hidden flex items-start space-x-4 p-5 rounded-2xl border ${
-                !n.read 
-                    ? "bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border-indigo-500/50 shadow-lg shadow-indigo-500/10" 
-                    : "bg-white/5 border-white/5 hover:bg-white/10"
+          {filtered.map((n) => (
+            <div
+              key={n._id}
+              className={`editorial-card rounded-2xl p-4 sm:p-5 flex items-start gap-4 transition ${
+                !n.read ? "border-[var(--accent)]/50 bg-[var(--surface-hover)]" : ""
               }`}
             >
-              {/* Unread Indicator Dot */}
-              {!n.read && (
-                  <div className="absolute top-4 right-4 w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.6)]"></div>
-              )}
-
-              <div className="p-3 bg-white/5 rounded-xl border border-white/10 shadow-inner shrink-0">
-                {getIcon(n.type)}
+              {/* Type Icon Badge */}
+              <div className="h-10 w-10 rounded-full bg-[var(--surface-raised)] border border-[var(--line)] flex items-center justify-center shrink-0">
+                {getNotificationIcon(n.type)}
               </div>
-              
+
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center space-x-2">
-                        <Link to={`/profile/${n.sender._id}`}>
-                            <img 
-                            src={n.sender.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${n.sender.name}`} 
-                            alt={n.sender.name}
-                            className="w-6 h-6 rounded-full object-cover border border-white/20"
-                            />
-                        </Link>
-                        <Link to={`/profile/${n.sender._id}`} className="font-bold text-white hover:text-indigo-400 transition-colors truncate max-w-[150px]">
-                            {n.sender.name}
-                        </Link>
-                    </div>
-                    <div className="flex items-center text-[10px] text-gray-500 space-x-1">
-                        <FaClock />
-                        <span>{new Date(n.createdAt).toLocaleDateString()}</span>
-                    </div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Link to={`/profile/${n.sender?._id}`}>
+                      <div className="h-6 w-6 rounded-full overflow-hidden bg-[var(--surface-raised)] border border-[var(--line)]">
+                        {n.sender?.avatar ? (
+                          <img src={n.sender.avatar} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-[var(--accent)]">
+                            {(n.sender?.name?.charAt(0) || "U").toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+
+                    <Link
+                      to={`/profile/${n.sender?._id}`}
+                      className="font-semibold text-xs text-[var(--ink)] hover:text-[var(--accent)] transition truncate"
+                    >
+                      {n.sender?.name || "Someone"}
+                    </Link>
+
+                    <span className="text-xs text-[var(--ink-secondary)]">
+                      {getActionText(n)}
+                    </span>
+                  </div>
+
+                  <span className="text-[10px] font-mono text-[var(--ink-muted)] shrink-0 flex items-center gap-1">
+                    <BiTimeFive size={11} />
+                    {new Date(n.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
 
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  {getMessage(n)}
-                </p>
-
-                {/* Additional Context (Post Title or Comment) */}
-                {n.post && (n.type === "like" || n.type === "comment" || n.type === "friend_post") && (
-                   <Link 
-                        to={`/post/${n.post._id || n.post}`} 
-                        className="mt-3 block p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition group"
-                   >
-                     <p className="text-xs text-indigo-300 font-medium group-hover:text-indigo-200 truncate">
-                        {n.post.title || "View Post Content"}
-                     </p>
-                   </Link>
+                {/* Additional context (linked post or comment text) */}
+                {n.post && (
+                  <Link
+                    to={`/post/${n.post._id || n.post}`}
+                    className="mt-2 block rounded-xl bg-[var(--surface-raised)] p-2.5 border border-[var(--line)] text-xs text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:border-[var(--line-strong)] transition truncate"
+                  >
+                    "{n.post.title || "View Post"}"
+                  </Link>
                 )}
-                
-                {n.text && n.type === "comment" && (
-                    <div className="mt-2 text-xs text-gray-400 italic border-l-2 border-gray-600 pl-2">
-                        "{n.text}"
-                    </div>
+
+                {n.text && (
+                  <p className="mt-2 text-xs text-[var(--ink-secondary)] italic border-l-2 border-[var(--line-strong)] pl-3">
+                    "{n.text}"
+                  </p>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
+
     </div>
   );
 }

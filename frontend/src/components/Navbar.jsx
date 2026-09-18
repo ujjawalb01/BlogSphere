@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { BiPlusCircle, BiMessageRoundedDots, BiBell, BiPlanet, BiMoon, BiSun } from "react-icons/bi";
+import {
+  BiSearch,
+  BiMessageRoundedDots,
+  BiBell,
+  BiSun,
+  BiMoon,
+  BiEdit,
+  BiBookmark,
+  BiUser,
+  BiLogOut,
+  BiChevronDown
+} from "react-icons/bi";
 import API from "../api";
 import { io } from "socket.io-client";
 
@@ -13,204 +24,264 @@ export default function Navbar() {
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
+  // Sync theme
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Fetch initial unread counts and set up socket listeners
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch unread counts & socket events
   useEffect(() => {
     if (!user) return;
 
-    // Fetch Counts
     const fetchCounts = async () => {
-       try {
-          const notifRes = await API.get("/notifications/unread/count");
-          setUnreadNotifs(notifRes.data.count);
-          
-          const msgRes = await API.get("/messages/unread/count");
-          setUnreadMsgs(msgRes.data.count);
-       } catch (err) {
-          console.error("Failed to fetch unread counts", err);
-       }
+      try {
+        const notifRes = await API.get("/notifications/unread/count");
+        setUnreadNotifs(notifRes.data?.count || 0);
+
+        const msgRes = await API.get("/messages/unread/count");
+        setUnreadMsgs(msgRes.data?.count || 0);
+      } catch (err) {
+        console.error("Failed to fetch unread counts", err);
+      }
     };
+
     fetchCounts();
 
-    // Listen for global refresh events (e.g. from Messenger/Notifications page)
     const handleRefresh = () => fetchCounts();
     window.addEventListener("refreshCounts", handleRefresh);
 
-    // Socket Listener
-    // Note: Assuming socket is initialized elsewhere or we use a simple approach here.
-    // If not global, we might need to rely on polling or a context. 
-    // However, since Messenger uses its own socket, checking if we can reuse or just use a new one.
-    // For now, let's try to reuse the socket from window/global if available or just wait for refresh.
-    // Actually, best strictly here is to reuse logic. 
-    // But since `io` isn't imported, let's import it.
-    
-    // Changing strategy: Import io matching Messenger.jsx
-    // Fix: Remove "/api" if present in the URL for socket connection
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
     const socketUrl = apiUrl.replace("/api", "");
-    
-    const socket = io(socketUrl);
-    
-    socket.on("connect", () => {
-        console.log("Navbar Socket Connected:", socket.id);
-    });
+    const socket = io(socketUrl, { transports: ["websocket", "polling"] });
 
-    socket.on("connect_error", (err) => {
-        console.error("Navbar Socket Connection Error:", err);
+    socket.on("connect", () => {
+      socket.emit("join_room", user._id || user.id);
     });
-    
-    socket.emit("join_room", user._id || user.id);
 
     socket.on("newNotification", () => {
-        setUnreadNotifs(prev => prev + 1);
+      setUnreadNotifs((prev) => prev + 1);
     });
 
     socket.on("newMessage", () => {
-        setUnreadMsgs(prev => prev + 1);
+      setUnreadMsgs((prev) => prev + 1);
     });
 
     return () => {
-        socket.disconnect();
+      window.removeEventListener("refreshCounts", handleRefresh);
+      socket.disconnect();
     };
-  }, [user?.id]);
+  }, [user?._id || user?.id]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (!query.trim()) return;
-    navigate(`/search?q=${query}`);
+    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
   };
 
-  const toggleTheme = () => setTheme((current) => current === "dark" ? "light" : "dark");
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setDropdownOpen(false);
+    navigate("/login");
+  };
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-white/10 bg-[#171817]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-[70px] max-w-7xl items-center justify-between px-4 md:px-8">
+    <header className="sticky top-0 z-40 w-full border-b border-[var(--line)] bg-[var(--canvas)]/90 backdrop-blur-md transition-colors">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        
+        {/* LEFT: Logo Wordmark */}
+        <div className="flex items-center gap-6">
+          <Link to="/" className="group flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--surface-raised)] border border-[var(--line-strong)] text-[var(--accent)] font-serif font-bold text-lg tracking-tight shadow-sm transition group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)]">
+              B
+            </span>
+            <div className="flex flex-col">
+              <span className="font-serif text-xl font-bold tracking-tight text-[var(--ink)] transition group-hover:opacity-90">
+                BlogSphere
+              </span>
+              <span className="editorial-eyebrow text-[9px] -mt-1 tracking-widest text-[var(--ink-muted)] hidden sm:block">
+                Editorial &amp; Community
+              </span>
+            </div>
+          </Link>
+        </div>
 
-        {/* LOGO */}
-        <Link to="/" className="flex items-center space-x-3 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d9ff65]/60 text-[#d9ff65] group-hover:bg-[#d9ff65] group-hover:text-[#202318]">
-             <BiPlanet className="text-2xl" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-[#f5f3ed]">BlogSphere</h1>
-            <p className="eyebrow mt-0.5 text-[8px]">Stories in common</p>
-          </div>
-        </Link>
+        {/* CENTER: Search Bar */}
+        <div className="hidden md:flex flex-1 max-w-md mx-8">
+          <form onSubmit={handleSearch} className="w-full relative">
+            <BiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] text-lg" />
+            <input
+              type="text"
+              placeholder="Search blogs, people, topics..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full rounded-full border border-[var(--line)] bg-[var(--surface)] py-2 pl-10 pr-4 text-sm text-[var(--ink)] placeholder-[var(--ink-muted)] outline-none transition focus:border-[var(--accent)] focus:bg-[var(--surface-hover)]"
+            />
+          </form>
+        </div>
 
-        {/* SEARCH BAR */}
-        {user && <form onSubmit={handleSearch} className="hidden md:flex items-center">
-          <input
-            type="text"
-            placeholder="Search posts or users..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-52 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-gray-500 outline-none transition focus:border-[#d9ff65]/70 md:w-72"
-          />
-        </form>}
-
-        {/* RIGHT SIDE - Desktop */}
-        <div className="hidden md:flex items-center space-x-5">
+        {/* RIGHT: Actions & Profile */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          
+          {/* Theme Toggle Button */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="rounded-full border border-white/10 p-2 text-gray-400 hover:border-white/25 hover:text-[#d9ff65]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label="Toggle color theme"
           >
-            {theme === "dark" ? <BiSun size={19} /> : <BiMoon size={19} />}
+            {theme === "dark" ? <BiSun size={18} /> : <BiMoon size={18} />}
           </button>
-          {user && <Link
-            to="/create"
-            className="text-gray-400 hover:text-[#d9ff65]"
-            title="Create Post"
-          >
-            <BiPlusCircle size={28} />
-          </Link>}
-          
-          {user && <Link
-            to="/messenger"
-            className="relative text-gray-400 hover:text-[#d9ff65]"
-            title="Messages"
-          >
-            <BiMessageRoundedDots size={26} />
-            {unreadMsgs > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-900">
-                {unreadMsgs > 9 ? "9+" : unreadMsgs}
-              </span>
-            )}
-          </Link>}
 
-          {user && <Link
-            to="/notifications"
-            className="relative text-gray-400 hover:text-[#d9ff65]"
-            title="Notifications"
-          >
-            <BiBell size={26} />
-            {unreadNotifs > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-900">
-                {unreadNotifs > 9 ? "9+" : unreadNotifs}
-              </span>
-            )}
-          </Link>}
-
+          {/* User Logged In Actions */}
           {user ? (
             <>
-              <Link to="/profile" className="flex items-center space-x-2 text-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d9ff65] text-sm font-semibold text-[#202318]">
-                  {(user.name && user.name.charAt(0).toUpperCase()) || "U"}
-                </div>
-                <div className="text-sm text-white/90">{user.name}</div>
+              {/* Write Story CTA (Desktop) */}
+              <Link
+                to="/create"
+                className="hidden sm:inline-flex btn-primary-editorial text-xs py-2 px-3.5"
+                title="Write a new story"
+              >
+                <BiEdit size={16} />
+                <span>Write</span>
               </Link>
+
+              {/* Messages Link */}
+              <Link
+                to="/messenger"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
+                title="Direct Messages"
+              >
+                <BiMessageRoundedDots size={19} />
+                {unreadMsgs > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                    {unreadMsgs > 9 ? "9+" : unreadMsgs}
+                  </span>
+                )}
+              </Link>
+
+              {/* Notifications Link */}
+              <Link
+                to="/notifications"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
+                title="Notifications"
+              >
+                <BiBell size={19} />
+                {unreadNotifs > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                    {unreadNotifs > 9 ? "9+" : unreadNotifs}
+                  </span>
+                )}
+              </Link>
+
+              {/* User Dropdown Menu */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  className="flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1 pr-2 hover:border-[var(--line-strong)] transition"
+                  aria-expanded={dropdownOpen}
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] font-semibold text-xs text-[var(--accent-ink)] overflow-hidden">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      (user.name?.charAt(0) || "U").toUpperCase()
+                    )}
+                  </div>
+                  <BiChevronDown size={14} className="text-[var(--ink-muted)]" />
+                </button>
+
+                {/* Dropdown Card */}
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-2 shadow-card z-50 page-fade-in">
+                    <div className="border-b border-[var(--line)] px-3 py-2.5">
+                      <p className="font-semibold text-sm text-[var(--ink)] truncate">{user.name}</p>
+                      <p className="text-xs text-[var(--ink-muted)] truncate">@{user.username || user.email}</p>
+                    </div>
+
+                    <div className="py-1">
+                      <Link
+                        to="/profile"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
+                      >
+                        <BiUser size={17} />
+                        <span>Profile</span>
+                      </Link>
+
+                      <Link
+                        to="/bookmarks"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
+                      >
+                        <BiBookmark size={17} />
+                        <span>Saved Bookmarks</span>
+                      </Link>
+
+                      <Link
+                        to="/create"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition sm:hidden"
+                      >
+                        <BiEdit size={17} />
+                        <span>Write Story</span>
+                      </Link>
+                    </div>
+
+                    <div className="border-t border-[var(--line)] pt-1">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition"
+                      >
+                        <BiLogOut size={17} />
+                        <span>Sign out</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
-            <>
-              <Link to="/login" className="px-3 py-2 text-sm text-gray-300 hover:text-white">
-                Login
+            <div className="flex items-center gap-2">
+              <Link
+                to="/login"
+                className="rounded-full px-3.5 py-1.5 text-sm font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] transition"
+              >
+                Sign in
               </Link>
               <Link
                 to="/register"
-                className="rounded-full px-4 py-2 text-sm btn"
+                className="btn-primary-editorial text-xs py-1.5 px-3.5"
               >
-                Sign up
+                Get started
               </Link>
-            </>
+            </div>
           )}
-        </div>
-        
-        {/* Mobile Right Side: Notifications & Login only (since Navbar has Create/Msg) */}
-        <div className="flex md:hidden items-center space-x-3">
-             <button
-                type="button"
-                onClick={toggleTheme}
-                className="rounded-full p-1.5 text-gray-400 hover:bg-white/10 hover:text-[#d9ff65]"
-                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-             >
-                {theme === "dark" ? <BiSun size={21} /> : <BiMoon size={21} />}
-             </button>
-             {user && location.pathname !== "/profile" && (
-                 <Link
-                    to="/notifications"
-                    className="text-gray-300 hover:text-white transition-colors relative"
-                 >
-                    <BiBell size={24} />
-                    {unreadNotifs > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full border-2 border-gray-900">
-                        {unreadNotifs > 9 ? "9+" : unreadNotifs}
-                      </span>
-                    )}
-                 </Link>
-             )}
-             {!user && <>
-               <Link to="/login" className="text-sm font-semibold text-gray-200 hover:text-white">Login</Link>
-               <Link to="/register" className="rounded-full px-3 py-1.5 text-xs btn">Sign up</Link>
-             </>}
+
         </div>
       </div>
-    </nav>
+    </header>
   );
 }
