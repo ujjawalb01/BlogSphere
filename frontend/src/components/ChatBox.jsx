@@ -59,7 +59,7 @@ export default function ChatBox({ currentChat, currentUser, socket, messages, se
     <div className="flex h-full flex-col overflow-hidden bg-[var(--surface)]">
       
       {/* CHAT HEADER */}
-      <div className="flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface-hover)] px-5 py-3.5">
+      <div className="hidden md:flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface-hover)] px-5 py-3.5">
         <Link
           to={`/profile/${currentChat?._id}`}
           className="flex items-center gap-3 group"

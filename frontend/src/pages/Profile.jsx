@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   BiCog,
@@ -9,7 +9,9 @@ import {
   BiTimeFive,
   BiBookmark,
   BiGridAlt,
-  BiCheck
+  BiCheck,
+  BiCamera,
+  BiImage
 } from "react-icons/bi";
 import API from "../api";
 import Spinner from "../components/Spinner";
@@ -23,6 +25,11 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("posts"); // 'posts' | 'bookmarks'
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
+  const [profileUser, setProfileUser] = useState(user); // live-updated user data
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   // Settings modals
   const [showSettings, setShowSettings] = useState(false);
@@ -36,6 +43,15 @@ export default function Profile() {
 
     const id = user.id || user._id;
 
+    // Fetch fresh user data from backend
+    API.get(`/user/${id}`).then((res) => {
+      if (res.data) {
+        setProfileUser(res.data);
+        const fresh = { ...user, avatar: res.data.avatar, coverImage: res.data.coverImage, name: res.data.name, username: res.data.username };
+        localStorage.setItem("user", JSON.stringify(fresh));
+      }
+    }).catch(() => {});
+
     Promise.all([
       API.get(`/user/${id}/stats`).catch(() => ({ data: { followers: 0, following: 0, posts: 0 } })),
       API.get(`/posts?author=${id}`).catch(() => ({ data: [] })),
@@ -46,9 +62,10 @@ export default function Profile() {
         const filtered = (postsRes.data || []).filter((p) => p.author?._id === id);
         setPosts(filtered);
 
-        // Filter saved bookmarks
+        // Filter saved bookmarks using user-specific key
         try {
-          const savedIds = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+          const userId = user.id || user._id;
+          const savedIds = JSON.parse(localStorage.getItem(`bookmarked_posts_${userId}`) || "[]");
           const saved = (allPostsRes.data || []).filter((p) => savedIds.includes(p._id));
           setBookmarkedPosts(saved);
         } catch (e) {
@@ -57,6 +74,48 @@ export default function Profile() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Handle avatar file upload
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await API.post("/user/upload-avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      const updated = { ...profileUser, avatar: res.data.user.avatar };
+      setProfileUser(updated);
+      localStorage.setItem("user", JSON.stringify({ ...user, avatar: res.data.user.avatar }));
+    } catch (err) {
+      console.error("Avatar upload failed", err);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  // Handle cover image file upload
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("cover", file);
+      const res = await API.post("/user/upload-cover", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      const updated = { ...profileUser, coverImage: res.data.user.coverImage };
+      setProfileUser(updated);
+      localStorage.setItem("user", JSON.stringify({ ...user, coverImage: res.data.user.coverImage }));
+    } catch (err) {
+      console.error("Cover upload failed", err);
+    } finally {
+      setCoverUploading(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -84,42 +143,102 @@ export default function Profile() {
       {/* PROFILE HEADER CARD */}
       <div className="editorial-card rounded-3xl overflow-hidden mb-10 shadow-card">
         
-        {/* Editorial Cover Texture */}
-        <div className="h-36 sm:h-48 bg-gradient-to-r from-[#1b1e1b] via-[#252a24] to-[#1a1c18] relative border-b border-[var(--line)]">
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#d8ff65_1px,transparent_1px)] [background-size:16px_16px]" />
-          
+        {/* Cover Image */}
+        <div className="h-40 sm:h-56 relative overflow-hidden bg-gradient-to-r from-[#1b1e1b] via-[#252a24] to-[#1a1c18] border-b border-[var(--line)] group cursor-pointer"
+          onClick={() => coverInputRef.current?.click()}
+        >
+          {profileUser.coverImage ? (
+            <img src={profileUser.coverImage} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#d8ff65_1px,transparent_1px)] [background-size:16px_16px]" />
+          )}
+
+          {/* Cover overlay on hover */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 group-hover:bg-black/40 transition-all duration-200">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1">
+              {coverUploading ? (
+                <div className="h-8 w-8 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : (
+                <>
+                  <BiImage size={28} className="text-white drop-shadow" />
+                  <span className="text-xs font-semibold text-white drop-shadow">Change Cover Photo</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Hidden input */}
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleCoverUpload}
+          />
+
+          {/* Settings button */}
           <button
             type="button"
-            onClick={() => setShowSettings(true)}
+            onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
             className="absolute top-4 right-4 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/80 transition"
             aria-label="Settings"
           >
             <BiCog size={16} />
             <span>Settings</span>
           </button>
+
+          {/* Cover photo hint badge */}
+          {!profileUser.coverImage && !coverUploading && (
+            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/50 backdrop-blur-sm px-3 py-1 text-[10px] font-semibold text-white/70 border border-white/10 pointer-events-none">
+              <BiImage size={12} /> Click to add a cover photo
+            </span>
+          )}
         </div>
 
         {/* Profile Info Row */}
-        <div className="px-6 sm:px-10 pb-8 pt-0 relative">
+        <div className="px-4 sm:px-10 pb-8 pt-0 relative">
           <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6 text-center sm:text-left">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
               
-              {/* Avatar */}
-              <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full overflow-hidden bg-[var(--surface-raised)] border-4 border-[var(--surface)] shadow-lg flex items-center justify-center font-serif font-bold text-3xl text-[var(--accent)] shrink-0">
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                ) : (
-                  (user.name?.charAt(0) || "U").toUpperCase()
-                )}
+              {/* Avatar with upload overlay */}
+              <div className="relative shrink-0 group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full overflow-hidden bg-[var(--surface-raised)] border-4 border-[var(--surface)] shadow-lg flex items-center justify-center font-serif font-bold text-3xl text-[var(--accent)]">
+                  {profileUser.avatar ? (
+                    <img src={profileUser.avatar} alt={profileUser.name} className="h-full w-full object-cover" />
+                  ) : (
+                    (profileUser.name?.charAt(0) || "U").toUpperCase()
+                  )}
+                </div>
+                {/* Avatar hover overlay */}
+                <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/50 transition-all duration-200 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-0.5">
+                    {avatarUploading ? (
+                      <div className="h-6 w-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    ) : (
+                      <>
+                        <BiCamera size={22} className="text-white drop-shadow" />
+                        <span className="text-[9px] font-bold text-white">Change</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {/* Hidden input */}
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
               </div>
 
               <div>
                 <span className="editorial-eyebrow block">Member Profile</span>
                 <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--ink)]">
-                  {user.name}
+                  {profileUser.name}
                 </h1>
-                <p className="text-xs text-[var(--ink-muted)]">
-                  @{user.username || "creator"} • {user.email}
+                <p className="text-xs text-[var(--ink-muted)] break-words">
+                  @{profileUser.username || "creator"} • {profileUser.email}
                 </p>
               </div>
             </div>
@@ -165,11 +284,11 @@ export default function Profile() {
       </div>
 
       {/* TAB NAVIGATION: Published Stories vs Bookmarks */}
-      <div className="flex items-center gap-2 border-b border-[var(--line)] pb-4 mb-6">
+      <div className="flex items-center gap-2 border-b border-[var(--line)] pb-4 mb-6 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab("posts")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition ${
+          className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition ${
             activeTab === "posts"
               ? "bg-[var(--accent)] text-[var(--accent-ink)]"
               : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
@@ -182,7 +301,7 @@ export default function Profile() {
         <button
           type="button"
           onClick={() => setActiveTab("bookmarks")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition ${
+          className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition ${
             activeTab === "bookmarks"
               ? "bg-[var(--accent)] text-[var(--accent-ink)]"
               : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
@@ -294,7 +413,7 @@ export default function Profile() {
       {/* SETTINGS MAIN MODAL */}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 page-fade-in">
-          <div className="w-full max-w-sm rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-6 shadow-card">
+          <div className="w-full max-w-sm rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-5 sm:p-6 shadow-card max-h-[min(90vh,100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-[var(--line)] mb-4">
               <h3 className="font-serif font-bold text-xl text-[var(--ink)]">Account Settings</h3>
               <button
@@ -401,7 +520,7 @@ function UpdateAccountModal({ user, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 page-fade-in">
-      <div className="w-full max-w-md rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-6 shadow-card">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-5 sm:p-6 shadow-card max-h-[min(90vh,100dvh-2rem)] overflow-y-auto">
         <div className="flex items-center justify-between pb-4 border-b border-[var(--line)] mb-4">
           <h3 className="font-serif font-bold text-xl text-[var(--ink)]">Edit Profile</h3>
           <button type="button" onClick={onClose} className="p-1 rounded-full text-[var(--ink-muted)]">
@@ -496,7 +615,7 @@ function ChangePasswordModal({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 page-fade-in">
-      <div className="w-full max-w-md rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-6 shadow-card">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-5 sm:p-6 shadow-card max-h-[min(90vh,100dvh-2rem)] overflow-y-auto">
         <div className="flex items-center justify-between pb-4 border-b border-[var(--line)] mb-4">
           <h3 className="font-serif font-bold text-xl text-[var(--ink)]">Change Password</h3>
           <button type="button" onClick={onClose} className="p-1 rounded-full text-[var(--ink-muted)]">

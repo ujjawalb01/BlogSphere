@@ -91,7 +91,7 @@ export default function CreatePost() {
     <div className="w-full max-w-3xl mx-auto page-fade-in pb-20">
       
       {/* Back button & top bar */}
-      <div className="flex items-center justify-between pb-6 border-b border-[var(--line)] mb-8">
+      <div className="flex items-center justify-between pb-6 border-b border-[var(--line)] mb-8 gap-3">
         <Link
           to="/"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-secondary)] hover:text-[var(--accent)] transition"
@@ -100,7 +100,7 @@ export default function CreatePost() {
           <span>Discard &amp; Back</span>
         </Link>
 
-        <div className="flex items-center gap-3 text-xs text-[var(--ink-muted)] font-mono">
+        <div className="flex shrink-0 items-center gap-3 text-xs text-[var(--ink-muted)] font-mono">
           <span>{wordCount} words</span>
           <span>•</span>
           <span>~{estReadingTime} min read</span>
@@ -217,12 +217,12 @@ export default function CreatePost() {
           </div>
 
           {/* PUBLISH CONTROLS */}
-          <div className="flex items-center justify-between pt-6 border-t border-[var(--line)]">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t border-[var(--line)]">
             <button
               type="button"
               onClick={() => navigate("/")}
               disabled={uploading}
-              className="btn-secondary-editorial text-xs"
+              className="btn-secondary-editorial text-xs w-full sm:w-auto"
             >
               Cancel
             </button>
@@ -230,7 +230,7 @@ export default function CreatePost() {
             <button
               type="submit"
               disabled={uploading || !title.trim() || !content.trim()}
-              className="btn-primary-editorial text-sm py-2.5 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary-editorial text-sm py-2.5 px-6 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             >
               {uploading ? (
                 <span className="flex items-center gap-2">

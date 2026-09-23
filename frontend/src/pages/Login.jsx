@@ -27,11 +27,11 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-[75vh] items-center justify-center py-6 page-fade-in">
+    <div className="flex min-h-[75vh] items-center justify-center py-4 sm:py-6 page-fade-in">
       <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] shadow-card md:grid-cols-12">
         
         {/* Editorial Brand Column */}
-        <section className="md:col-span-5 relative overflow-hidden bg-[var(--surface-raised)] p-8 md:p-10 border-b md:border-b-0 md:border-r border-[var(--line)] flex flex-col justify-between">
+        <section className="md:col-span-5 relative overflow-hidden bg-[var(--surface-raised)] p-6 sm:p-8 md:p-10 border-b md:border-b-0 md:border-r border-[var(--line)] flex flex-col justify-between">
           <div>
             <span className="editorial-eyebrow block mb-2">Welcome Back</span>
             <span className="font-serif font-bold text-2xl text-[var(--ink)] tracking-tight">
@@ -39,7 +39,7 @@ export default function Login() {
             </span>
           </div>
 
-          <div className="my-8">
+          <div className="my-4 sm:my-8">
             <blockquote className="font-serif italic text-xl sm:text-2xl text-[var(--ink)] leading-snug mb-3">
               “Reading is an exercise in empathy; an exercise in walking in someone else’s shoes for a while.”
             </blockquote>
@@ -54,7 +54,7 @@ export default function Login() {
         </section>
 
         {/* Form Column */}
-        <section className="md:col-span-7 p-7 sm:p-10">
+        <section className="md:col-span-7 p-5 sm:p-10">
           <div className="mb-6">
             <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--ink)] mb-1.5">
               Sign In to Your Corner

@@ -8,23 +8,28 @@ export default function FeaturedHero({ posts = [] }) {
   const featuredPost = posts.find((p) => (p.media && p.media.length > 0) || p.mediaUrl) || posts[0];
   const [isBookmarked, setIsBookmarked] = useState(false);
 
+  // User-specific bookmark key
+  const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+  const bookmarkKey = currentUser?._id ? `bookmarked_posts_${currentUser._id}` : null;
+
   useEffect(() => {
-    if (!featuredPost?._id) return;
+    if (!featuredPost?._id || !bookmarkKey) return;
     try {
-      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const saved = JSON.parse(localStorage.getItem(bookmarkKey) || "[]");
       setIsBookmarked(saved.includes(featuredPost._id));
     } catch (e) {
       setIsBookmarked(false);
     }
-  }, [featuredPost?._id]);
+  }, [featuredPost?._id, bookmarkKey]);
 
   if (!featuredPost) return null;
 
   const toggleBookmark = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!bookmarkKey) return;
     try {
-      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const saved = JSON.parse(localStorage.getItem(bookmarkKey) || "[]");
       let updated;
       if (saved.includes(featuredPost._id)) {
         updated = saved.filter((id) => id !== featuredPost._id);
@@ -33,7 +38,7 @@ export default function FeaturedHero({ posts = [] }) {
         updated = [...saved, featuredPost._id];
         setIsBookmarked(true);
       }
-      localStorage.setItem("bookmarked_posts", JSON.stringify(updated));
+      localStorage.setItem(bookmarkKey, JSON.stringify(updated));
       window.dispatchEvent(new Event("bookmarksUpdated"));
     } catch (e) {
       console.error(e);
@@ -53,12 +58,12 @@ export default function FeaturedHero({ posts = [] }) {
   );
 
   return (
-    <section className="mb-8 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--surface)] shadow-card transition-all">
+    <section className="mb-8 overflow-hidden rounded-2xl sm:rounded-3xl border border-[var(--line)] bg-[var(--surface)] shadow-card transition-all">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
         
         {/* Left / Top Image Showcase (if has image) */}
         {imageUrl ? (
-          <div className="lg:col-span-7 relative min-h-[260px] sm:min-h-[340px] bg-black/40 overflow-hidden group">
+          <div className="lg:col-span-7 relative min-h-[200px] sm:min-h-[340px] bg-black/40 overflow-hidden group">
             <Link to={`/post/${featuredPost._id}`} className="block h-full w-full">
               <img
                 src={imageUrl}
@@ -79,7 +84,7 @@ export default function FeaturedHero({ posts = [] }) {
         )}
 
         {/* Right / Content Details */}
-        <div className={`p-6 sm:p-8 flex flex-col justify-between ${imageUrl ? "lg:col-span-5" : "lg:col-span-12"}`}>
+        <div className={`p-5 sm:p-8 flex flex-col justify-between ${imageUrl ? "lg:col-span-5" : "lg:col-span-12"}`}>
           <div>
             <div className="flex items-center justify-between gap-3 mb-3">
               <span className="editorial-eyebrow">
@@ -109,10 +114,10 @@ export default function FeaturedHero({ posts = [] }) {
           </div>
 
           {/* Author info & Reading Time */}
-          <div className="flex items-center justify-between border-t border-[var(--line)] pt-4 mt-2">
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4 mt-2">
             <Link
               to={`/profile/${featuredPost.author?._id}`}
-              className="flex items-center gap-2.5 group"
+              className="flex min-w-0 items-center gap-2.5 group"
             >
               <div className="h-8 w-8 rounded-full overflow-hidden bg-[var(--surface-raised)] border border-[var(--line)]">
                 {featuredPost.author?.avatar ? (
@@ -140,7 +145,7 @@ export default function FeaturedHero({ posts = [] }) {
 
             <Link
               to={`/post/${featuredPost._id}`}
-              className="btn-primary-editorial text-xs py-1.5 px-3.5"
+              className="btn-primary-editorial shrink-0 text-xs py-1.5 px-3.5"
             >
               Read story
             </Link>

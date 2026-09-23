@@ -8,10 +8,20 @@ export default function Bookmarks() {
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // User-specific bookmark key so each account has isolated bookmarks
+  const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+  const bookmarkKey = currentUser?._id
+    ? `bookmarked_posts_${currentUser._id}`
+    : currentUser?.id
+    ? `bookmarked_posts_${currentUser.id}`
+    : null;
+
   const loadBookmarks = async () => {
     setLoading(true);
     try {
-      const savedIds = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const savedIds = bookmarkKey
+        ? JSON.parse(localStorage.getItem(bookmarkKey) || "[]")
+        : [];
       if (savedIds.length === 0) {
         setBookmarkedPosts([]);
         setLoading(false);
@@ -34,13 +44,14 @@ export default function Bookmarks() {
     const handleUpdate = () => loadBookmarks();
     window.addEventListener("bookmarksUpdated", handleUpdate);
     return () => window.removeEventListener("bookmarksUpdated", handleUpdate);
-  }, []);
+  }, [bookmarkKey]);
 
   const removeBookmark = (id) => {
+    if (!bookmarkKey) return;
     try {
-      const savedIds = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const savedIds = JSON.parse(localStorage.getItem(bookmarkKey) || "[]");
       const updated = savedIds.filter((item) => item !== id);
-      localStorage.setItem("bookmarked_posts", JSON.stringify(updated));
+      localStorage.setItem(bookmarkKey, JSON.stringify(updated));
       setBookmarkedPosts((prev) => prev.filter((p) => p._id !== id));
       window.dispatchEvent(new Event("bookmarksUpdated"));
     } catch (e) {

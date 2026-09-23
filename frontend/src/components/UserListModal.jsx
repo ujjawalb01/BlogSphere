@@ -5,7 +5,7 @@ import { BiX } from "react-icons/bi";
 export default function UserListModal({ title = "Users", users = [], onClose = () => {} }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 page-fade-in">
-      <div className="w-full max-w-md rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-6 shadow-card">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-5 sm:p-6 shadow-card max-h-[min(85vh,100dvh-2rem)] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[var(--line)]">

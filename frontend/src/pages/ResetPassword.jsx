@@ -37,7 +37,7 @@ export default function ResetPassword() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center p-4 page-fade-in">
-      <div className="editorial-card w-full max-w-md p-8 sm:p-10 rounded-3xl shadow-card">
+      <div className="editorial-card w-full max-w-md p-6 sm:p-10 rounded-3xl shadow-card">
         
         <div className="mb-6 text-center">
           <span className="editorial-eyebrow mb-1.5 block">Security</span>

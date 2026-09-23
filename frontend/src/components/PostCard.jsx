@@ -50,19 +50,24 @@ export default function PostCard({
     return fid === authorId;
   });
 
+  // User-specific bookmark key so bookmarks are isolated per account
+  const bookmarkKey = currentUserId ? `bookmarked_posts_${currentUserId}` : null;
+
   // Check bookmark status in localStorage
   useEffect(() => {
+    if (!bookmarkKey) return;
     try {
-      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const saved = JSON.parse(localStorage.getItem(bookmarkKey) || "[]");
       setIsBookmarked(saved.includes(post._id));
     } catch (e) {
       setIsBookmarked(false);
     }
-  }, [post._id]);
+  }, [post._id, bookmarkKey]);
 
   const toggleBookmark = () => {
+    if (!bookmarkKey) return;
     try {
-      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const saved = JSON.parse(localStorage.getItem(bookmarkKey) || "[]");
       let updated;
       if (saved.includes(post._id)) {
         updated = saved.filter((id) => id !== post._id);
@@ -71,7 +76,7 @@ export default function PostCard({
         updated = [...saved, post._id];
         setIsBookmarked(true);
       }
-      localStorage.setItem("bookmarked_posts", JSON.stringify(updated));
+      localStorage.setItem(bookmarkKey, JSON.stringify(updated));
       window.dispatchEvent(new Event("bookmarksUpdated"));
     } catch (e) {
       console.error("Bookmark toggle failed", e);
@@ -109,8 +114,8 @@ export default function PostCard({
       <article className="editorial-card rounded-2xl overflow-hidden mb-6 group transition-all duration-300">
         
         {/* CARD HEADER: Author & Actions */}
-        <div className="p-4 sm:p-5 flex items-center justify-between border-b border-[var(--line)]">
-          <div className="flex items-center gap-3">
+        <div className="p-4 sm:p-5 flex items-center justify-between gap-2 border-b border-[var(--line)]">
+          <div className="flex min-w-0 items-center gap-3">
             <Link to={`/profile/${post.author?._id}`} className="shrink-0">
               <div className="h-10 w-10 rounded-full overflow-hidden bg-[var(--surface-raised)] border border-[var(--line-strong)] ring-1 ring-[var(--line)]">
                 {post.author?.avatar ? (
@@ -153,7 +158,7 @@ export default function PostCard({
           </div>
 
           {/* Right Action: Follow Button or Delete Button */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {currentUser && post.author && !isOwner && (
               <button
                 type="button"
@@ -191,7 +196,7 @@ export default function PostCard({
               modules={[Pagination, Navigation]}
               pagination={{ clickable: true }}
               navigation={mediaList.length > 1}
-              className="w-full h-72 sm:h-96"
+              className="w-full h-56 sm:h-96"
             >
               {mediaList.map((item, index) => (
                 <SwiperSlide key={index} className="flex items-center justify-center bg-black/20">
@@ -253,7 +258,7 @@ export default function PostCard({
 
           {/* ACTION BUTTONS BAR */}
           <div className="flex items-center justify-between border-t border-[var(--line)] mt-4 pt-3.5 text-[var(--ink-secondary)]">
-            <div className="flex items-center gap-5 sm:gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               
               {/* Like Button */}
               <button
@@ -347,20 +352,20 @@ export default function PostCard({
 
               {/* Add Comment Input */}
               {currentUser ? (
-                <form onSubmit={handleCommentSubmit} className="flex items-center gap-2">
+                <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 min-w-0">
                   <input
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Add a thoughtful comment..."
-                    className="flex-1 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-xs text-[var(--ink)] placeholder-[var(--ink-muted)] outline-none focus:border-[var(--accent)]"
+                    className="min-w-0 flex-1 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-xs text-[var(--ink)] placeholder-[var(--ink-muted)] outline-none focus:border-[var(--accent)]"
                   />
                   <button
                     type="submit"
-                    className="btn-primary-editorial text-xs py-2 px-3.5"
+                    className="btn-primary-editorial shrink-0 text-xs py-2 px-3 sm:px-3.5"
                   >
                     <BiSend size={14} />
-                    <span>Post</span>
+                    <span className="hidden sm:inline">Post</span>
                   </button>
                 </form>
               ) : (

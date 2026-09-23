@@ -248,12 +248,12 @@ export default function EditPost() {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between pt-6 border-t border-[var(--line)]">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t border-[var(--line)]">
             <button
               type="button"
               onClick={() => navigate(`/post/${id}`)}
               disabled={loading}
-              className="btn-secondary-editorial text-xs"
+              className="btn-secondary-editorial text-xs w-full sm:w-auto"
             >
               Cancel
             </button>
@@ -261,7 +261,7 @@ export default function EditPost() {
             <button
               type="submit"
               disabled={loading || !title.trim() || !content.trim()}
-              className="btn-primary-editorial text-sm py-2.5 px-6 disabled:opacity-50"
+              className="btn-primary-editorial text-sm py-2.5 px-6 disabled:opacity-50 w-full sm:w-auto"
             >
               {loading ? "Saving Changes..." : "Save Changes"}
             </button>

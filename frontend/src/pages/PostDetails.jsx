@@ -71,19 +71,24 @@ export default function PostDetails() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // User-specific bookmark key so bookmarks are isolated per account
+  const bookmarkKey = loggedUser?._id ? `bookmarked_posts_${loggedUser._id}` : null;
+
   // Check bookmark status
   useEffect(() => {
+    if (!bookmarkKey) return;
     try {
-      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const saved = JSON.parse(localStorage.getItem(bookmarkKey) || "[]");
       setIsBookmarked(saved.includes(id));
     } catch (e) {
       setIsBookmarked(false);
     }
-  }, [id]);
+  }, [id, bookmarkKey]);
 
   const toggleBookmark = () => {
+    if (!bookmarkKey) return;
     try {
-      const saved = JSON.parse(localStorage.getItem("bookmarked_posts") || "[]");
+      const saved = JSON.parse(localStorage.getItem(bookmarkKey) || "[]");
       let updated;
       if (saved.includes(id)) {
         updated = saved.filter((pid) => pid !== id);
@@ -92,7 +97,7 @@ export default function PostDetails() {
         updated = [...saved, id];
         setIsBookmarked(true);
       }
-      localStorage.setItem("bookmarked_posts", JSON.stringify(updated));
+      localStorage.setItem(bookmarkKey, JSON.stringify(updated));
       window.dispatchEvent(new Event("bookmarksUpdated"));
     } catch (e) {
       console.error(e);
@@ -256,13 +261,13 @@ export default function PostDetails() {
             </span>
           </div>
 
-          <h1 className="font-serif font-bold text-3xl sm:text-5xl lg:text-6xl text-[var(--ink)] leading-[1.08] tracking-tight mb-6">
+          <h1 className="font-serif font-bold text-[1.75rem] sm:text-5xl lg:text-6xl text-[var(--ink)] leading-[1.15] sm:leading-[1.08] tracking-tight mb-6 break-words">
             {post.title}
           </h1>
 
           {/* AUTHOR METADATA ROW */}
-          <div className="flex items-center justify-between border-y border-[var(--line)] py-4 my-6">
-            <div className="flex items-center gap-3.5">
+          <div className="flex items-start sm:items-center justify-between gap-3 border-y border-[var(--line)] py-4 my-6">
+            <div className="flex min-w-0 items-center gap-3.5">
               <Link to={`/profile/${post.author?._id}`}>
                 <div className="h-12 w-12 rounded-full overflow-hidden bg-[var(--surface-raised)] border border-[var(--line-strong)]">
                   {post.author?.avatar ? (
@@ -356,7 +361,7 @@ export default function PostDetails() {
               modules={[Pagination, Navigation]}
               pagination={{ clickable: true }}
               navigation={mediaList.length > 1}
-              className="w-full h-80 sm:h-[440px] md:h-[500px]"
+              className="w-full h-56 sm:h-[440px] md:h-[500px]"
             >
               {mediaList.map((item, index) => (
                 <SwiperSlide key={index} className="flex items-center justify-center bg-black/30">
@@ -392,8 +397,8 @@ export default function PostDetails() {
         </div>
 
         {/* INTERACTIVE ACTIONS BAR */}
-        <div className="sticky bottom-4 z-20 my-10 flex items-center justify-between rounded-full border border-[var(--line-strong)] bg-[var(--surface)]/95 px-6 py-3 shadow-card backdrop-blur-md">
-          <div className="flex items-center gap-6">
+        <div className="sticky bottom-[calc(5.25rem+env(safe-area-inset-bottom))] md:bottom-4 z-20 my-10 flex items-center justify-between rounded-full border border-[var(--line-strong)] bg-[var(--surface)]/95 px-4 sm:px-6 py-3 shadow-card backdrop-blur-md">
+          <div className="flex items-center gap-4 sm:gap-6">
             
             {/* Like */}
             <button
@@ -507,11 +512,11 @@ export default function PostDetails() {
 
         {/* COMMENTS / DISCUSSION SECTION */}
         <section id="discussion" className="mt-14 pt-8 border-t border-[var(--line)]">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between gap-3 mb-8">
             <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--ink)]">
               Responses ({post.comments?.length || 0})
             </h2>
-            <span className="text-xs text-[var(--ink-muted)] font-mono">Join the conversation</span>
+            <span className="hidden sm:inline text-xs text-[var(--ink-muted)] font-mono">Join the conversation</span>
           </div>
 
           {/* Comment Form */}
@@ -587,7 +592,7 @@ export default function PostDetails() {
                     </div>
                   </div>
 
-                  <p className="text-sm text-[var(--ink-secondary)] leading-relaxed pl-10">
+                  <p className="text-sm text-[var(--ink-secondary)] leading-relaxed pl-0 sm:pl-10 break-words">
                     {c.text}
                   </p>
                 </div>

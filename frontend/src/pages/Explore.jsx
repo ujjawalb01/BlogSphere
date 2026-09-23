@@ -155,10 +155,10 @@ export default function Explore() {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-[var(--line)] pt-4">
+                  <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
                     <Link
                       to={`/profile/${leadStory.author?._id}`}
-                      className="flex items-center gap-2 text-xs font-semibold text-[var(--ink)] hover:text-[var(--accent)] transition"
+                      className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[var(--ink)] hover:text-[var(--accent)] transition"
                     >
                       <div className="h-6 w-6 rounded-full bg-[var(--surface-raised)] border border-[var(--line)] flex items-center justify-center text-[10px] font-bold text-[var(--accent)] overflow-hidden">
                         {leadStory.author?.avatar ? (
@@ -167,12 +167,12 @@ export default function Explore() {
                           (leadStory.author?.name?.charAt(0) || "U").toUpperCase()
                         )}
                       </div>
-                      <span>{leadStory.author?.name}</span>
+                      <span className="truncate">{leadStory.author?.name}</span>
                     </Link>
 
                     <Link
                       to={`/post/${leadStory._id}`}
-                      className="btn-primary-editorial text-xs py-1 px-3"
+                      className="btn-primary-editorial shrink-0 text-xs py-1 px-3"
                     >
                       Read story
                     </Link>

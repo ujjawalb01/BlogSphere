@@ -225,7 +225,7 @@ export default function Home({ onPostsLoaded }) {
           <button
             type="button"
             onClick={() => setActiveTab("forYou")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
+            className={`flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
               activeTab === "forYou"
                 ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
                 : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
@@ -238,7 +238,7 @@ export default function Home({ onPostsLoaded }) {
           <button
             type="button"
             onClick={() => setActiveTab("following")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
+            className={`flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
               activeTab === "following"
                 ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
                 : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
@@ -251,7 +251,7 @@ export default function Home({ onPostsLoaded }) {
           <button
             type="button"
             onClick={() => setActiveTab("trending")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
+            className={`flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition ${
               activeTab === "trending"
                 ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
                 : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"

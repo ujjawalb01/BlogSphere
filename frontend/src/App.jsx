@@ -39,12 +39,16 @@ export default function App() {
     location.pathname === "/search";
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)] flex flex-col transition-colors duration-200">
+    <div className="min-h-screen min-w-0 overflow-x-hidden bg-[var(--canvas)] text-[var(--ink)] flex flex-col transition-colors duration-200">
       {/* Top Navigation */}
       <Navbar />
 
       {/* Main Layout Container */}
-      <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8 flex-1 flex pb-20 md:pb-12 pt-4 sm:pt-6">
+      <div className={`mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-6 lg:px-8 flex-1 flex pt-4 sm:pt-6 ${
+        isAuthPage
+          ? "pb-8"
+          : "pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-12"
+      }`}>
         
         {/* Left Persistent Navigation Sidebar (Desktop) */}
         {!isAuthPage && <Sidebar />}
@@ -82,7 +86,7 @@ export default function App() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <BottomNav />
+      {!isAuthPage && <BottomNav />}
     </div>
   );
 }

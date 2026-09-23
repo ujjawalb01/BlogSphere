@@ -10,8 +10,13 @@ const {
   changePassword,
   getUser,
   getUserFollowing,
-  getUserFollowers
+  getUserFollowers,
+  uploadAvatar,
+  uploadCover
 } = require("../controllers/userController");
+
+const upload = require("../middleware/upload");
+
 
 const router = express.Router();
 
@@ -28,7 +33,12 @@ router.get("/search", searchUsers);
 router.get("/:id/followers", getUserFollowers);
 router.get("/:id/following", getUserFollowing);
 
-module.exports = router;
+// UPLOAD AVATAR
+router.post("/upload-avatar", auth, upload.single("avatar"), uploadAvatar);
+
+// UPLOAD COVER IMAGE
+router.post("/upload-cover", auth, upload.single("cover"), uploadCover);
+
 
 // User Stats
 router.get("/:id/stats", getUserStats);
@@ -41,3 +51,5 @@ router.put("/change-password", auth, changePassword);
 // User DEtals
 router.get("/:id", getUser);
 router.get("/:id/stats", getUserStats);
+
+module.exports = router;

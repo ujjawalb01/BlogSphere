@@ -106,16 +106,16 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--line)] bg-[var(--canvas)]/90 backdrop-blur-md transition-colors">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
         
         {/* LEFT: Logo Wordmark */}
-        <div className="flex items-center gap-6">
-          <Link to="/" className="group flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--surface-raised)] border border-[var(--line-strong)] text-[var(--accent)] font-serif font-bold text-lg tracking-tight shadow-sm transition group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)]">
+        <div className="flex min-w-0 items-center gap-6">
+          <Link to="/" className="group flex min-w-0 items-center gap-2 sm:gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-raised)] border border-[var(--line-strong)] text-[var(--accent)] font-serif font-bold text-lg tracking-tight shadow-sm transition group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)]">
               B
             </span>
-            <div className="flex flex-col">
-              <span className="font-serif text-xl font-bold tracking-tight text-[var(--ink)] transition group-hover:opacity-90">
+            <div className="flex min-w-0 flex-col">
+              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-[var(--ink)] transition group-hover:opacity-90 truncate">
                 BlogSphere
               </span>
               <span className="editorial-eyebrow text-[9px] -mt-1 tracking-widest text-[var(--ink-muted)] hidden sm:block">
@@ -140,7 +140,17 @@ export default function Navbar() {
         </div>
 
         {/* RIGHT: Actions & Profile */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-4">
+
+          {/* Mobile Search (desktop search lives in the center bar) */}
+          <Link
+            to="/search"
+            className="md:hidden flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
+            title="Search"
+            aria-label="Search"
+          >
+            <BiSearch size={18} />
+          </Link>
           
           {/* Theme Toggle Button */}
           <button
@@ -169,7 +179,7 @@ export default function Navbar() {
               {/* Messages Link */}
               <Link
                 to="/messenger"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
+                className="relative hidden md:flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--ink-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition"
                 title="Direct Messages"
               >
                 <BiMessageRoundedDots size={19} />
@@ -199,7 +209,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setDropdownOpen((prev) => !prev)}
-                  className="flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1 pr-2 hover:border-[var(--line-strong)] transition"
+                  className="flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1 sm:pr-2 hover:border-[var(--line-strong)] transition"
                   aria-expanded={dropdownOpen}
                 >
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] font-semibold text-xs text-[var(--accent-ink)] overflow-hidden">
@@ -209,7 +219,7 @@ export default function Navbar() {
                       (user.name?.charAt(0) || "U").toUpperCase()
                     )}
                   </div>
-                  <BiChevronDown size={14} className="text-[var(--ink-muted)]" />
+                  <BiChevronDown size={14} className="hidden sm:block text-[var(--ink-muted)]" />
                 </button>
 
                 {/* Dropdown Card */}
@@ -264,16 +274,16 @@ export default function Navbar() {
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Link
                 to="/login"
-                className="rounded-full px-3.5 py-1.5 text-sm font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] transition"
+                className="hidden min-[380px]:inline-flex rounded-full px-2.5 sm:px-3.5 py-1.5 text-sm font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] transition"
               >
                 Sign in
               </Link>
               <Link
                 to="/register"
-                className="btn-primary-editorial text-xs py-1.5 px-3.5"
+                className="btn-primary-editorial text-xs py-1.5 px-3 sm:px-3.5"
               >
                 Get started
               </Link>

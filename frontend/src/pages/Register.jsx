@@ -27,11 +27,11 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-[75vh] items-center justify-center py-6 page-fade-in">
+    <div className="flex min-h-[75vh] items-center justify-center py-4 sm:py-6 page-fade-in">
       <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] shadow-card md:grid-cols-12">
         
         {/* Form Column */}
-        <section className="md:col-span-7 p-7 sm:p-10 order-2 md:order-1">
+        <section className="md:col-span-7 p-5 sm:p-10 order-2 md:order-1">
           <div className="mb-6">
             <span className="editorial-eyebrow mb-1.5 block">Create Account</span>
             <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--ink)] mb-1">
@@ -132,7 +132,7 @@ export default function Register() {
         </section>
 
         {/* Editorial Brand Column */}
-        <section className="md:col-span-5 relative overflow-hidden bg-[var(--surface-raised)] p-8 md:p-10 border-b md:border-b-0 md:border-l border-[var(--line)] flex flex-col justify-between order-1 md:order-2">
+        <section className="md:col-span-5 relative overflow-hidden bg-[var(--surface-raised)] p-6 sm:p-8 md:p-10 border-b md:border-b-0 md:border-l border-[var(--line)] flex flex-col justify-between order-1 md:order-2">
           <div>
             <span className="editorial-eyebrow block mb-2">Publishing &amp; Community</span>
             <span className="font-serif font-bold text-2xl text-[var(--ink)] tracking-tight">
@@ -140,7 +140,7 @@ export default function Register() {
             </span>
           </div>
 
-          <div className="my-8">
+          <div className="my-4 sm:my-8">
             <blockquote className="font-serif italic text-xl sm:text-2xl text-[var(--ink)] leading-snug mb-3">
               “There is no greater agony than bearing an untold story inside you.”
             </blockquote>

@@ -153,11 +153,15 @@ export default function UserProfile() {
       
       {/* COVER & HEADER CARD */}
       <div className="editorial-card rounded-3xl overflow-hidden mb-10 shadow-card">
-        <div className="h-36 sm:h-48 bg-gradient-to-r from-[#1b1e1b] via-[#242923] to-[#1c1d19] relative border-b border-[var(--line)]">
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#d8ff65_1px,transparent_1px)] [background-size:16px_16px]" />
+        <div className="h-40 sm:h-56 bg-gradient-to-r from-[#1b1e1b] via-[#242923] to-[#1c1d19] relative overflow-hidden border-b border-[var(--line)]">
+          {user.coverImage ? (
+            <img src={user.coverImage} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#d8ff65_1px,transparent_1px)] [background-size:16px_16px]" />
+          )}
         </div>
 
-        <div className="px-6 sm:px-10 pb-8 pt-0">
+        <div className="px-4 sm:px-10 pb-8 pt-0">
           <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6 text-center sm:text-left">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
               
@@ -182,7 +186,7 @@ export default function UserProfile() {
 
             {/* Action Buttons for visitors */}
             {!isSelf && loggedUser && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                 <Link
                   to="/messenger"
                   state={{ chatUser: user }}

@@ -22,6 +22,7 @@ const UserSchema = new mongoose.Schema(
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
     avatar: String,
+    coverImage: String,
 
     resetPasswordToken: String,
     resetPasswordExpire: Date,

@@ -95,7 +95,7 @@ export default function ShareModal({ post, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 page-fade-in">
-      <div className="relative flex max-h-[85vh] w-full max-w-md flex-col rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-6 shadow-card">
+      <div className="relative flex max-h-[min(85vh,100dvh-2rem)] w-full max-w-md flex-col rounded-3xl border border-[var(--line-strong)] bg-[var(--surface)] p-5 sm:p-6 shadow-card">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[var(--line)]">
@@ -103,7 +103,7 @@ export default function ShareModal({ post, onClose }) {
             <BiShareAlt className="text-[var(--accent)] text-xl" />
             <div>
               <h3 className="font-serif font-bold text-lg text-[var(--ink)]">Share Story</h3>
-              <p className="text-xs text-[var(--ink-muted)] truncate max-w-[240px]">
+              <p className="text-xs text-[var(--ink-muted)] truncate max-w-[160px] sm:max-w-[240px]">
                 {post.title}
               </p>
             </div>

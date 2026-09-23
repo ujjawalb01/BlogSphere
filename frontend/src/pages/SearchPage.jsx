@@ -55,18 +55,26 @@ export default function SearchPage() {
       
       {/* Search Input Bar */}
       <form onSubmit={handleSearch} className="mb-8">
-        <div className="relative flex items-center">
-          <BiSearch className="absolute left-4 text-xl text-[var(--ink-muted)]" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search stories, members, and topics..."
-            className="w-full rounded-full border border-[var(--line-strong)] bg-[var(--surface)] py-3.5 pl-12 pr-28 text-base text-[var(--ink)] placeholder-[var(--ink-muted)] outline-none focus:border-[var(--accent)] shadow-sm transition"
-          />
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="relative flex-1">
+            <BiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-xl text-[var(--ink-muted)]" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search stories, members, and topics..."
+              className="w-full rounded-full border border-[var(--line-strong)] bg-[var(--surface)] py-3.5 pl-12 pr-4 sm:pr-28 text-base text-[var(--ink)] placeholder-[var(--ink-muted)] outline-none focus:border-[var(--accent)] shadow-sm transition"
+            />
+            <button
+              type="submit"
+              className="hidden sm:inline-flex btn-primary-editorial absolute right-2 top-1/2 -translate-y-1/2 text-xs py-2 px-5"
+            >
+              Search
+            </button>
+          </div>
           <button
             type="submit"
-            className="btn-primary-editorial absolute right-2 text-xs py-2 px-5"
+            className="sm:hidden btn-primary-editorial w-full text-xs py-2.5"
           >
             Search
           </button>
@@ -95,7 +103,7 @@ export default function SearchPage() {
             </h1>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-2 mt-4">
+            <div className="flex items-center gap-2 mt-4 overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setActiveTab("all")}

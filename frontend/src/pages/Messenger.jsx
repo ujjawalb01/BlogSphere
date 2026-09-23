@@ -113,7 +113,7 @@ export default function Messenger() {
 
   return (
     <div className="w-full page-fade-in py-2">
-      <div className="editorial-card h-[calc(100vh-140px)] min-h-[520px] max-h-[760px] rounded-3xl overflow-hidden shadow-card flex">
+      <div className="editorial-card h-[calc(100dvh-9.5rem-env(safe-area-inset-bottom))] min-h-[360px] max-h-none md:min-h-[520px] md:max-h-[760px] md:h-[calc(100vh-140px)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-card flex">
         
         {/* SIDEBAR CONVERSATIONS LIST */}
         <aside

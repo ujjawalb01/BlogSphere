@@ -19,7 +19,7 @@ export default function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--line)] bg-[var(--canvas)]/95 px-6 py-2 backdrop-blur-md md:hidden transition-colors">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--line)] bg-[var(--canvas)]/95 px-3 sm:px-6 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-md md:hidden transition-colors">
       <div className="flex items-center justify-between max-w-md mx-auto">
         
         {/* Home */}

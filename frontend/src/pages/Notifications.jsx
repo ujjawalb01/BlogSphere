@@ -101,7 +101,7 @@ export default function Notifications() {
               key={tab.value}
               type="button"
               onClick={() => setFilter(tab.value)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
                 filter === tab.value
                   ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
                   : "text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"

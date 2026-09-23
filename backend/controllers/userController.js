@@ -110,13 +110,15 @@ exports.getUserStats = async (req, res) => {
 exports.updateAccount = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { name, username, email } = req.body;
+    const { name, username, email, avatar, coverImage } = req.body;
 
     const updates = {};
 
     if (name) updates.name = name;
     if (username) updates.username = username;
     if (email) updates.email = email;
+    if (avatar !== undefined) updates.avatar = avatar;
+    if (coverImage !== undefined) updates.coverImage = coverImage;
 
     // If updating username, check if taken
     if (username) {
@@ -146,6 +148,41 @@ exports.updateAccount = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// UPLOAD AVATAR — expects multipart/form-data with field "avatar"
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const updated = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar: url },
+      { new: true }
+    ).select("-password");
+    res.json({ message: "Avatar updated", user: updated });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// UPLOAD COVER IMAGE — expects multipart/form-data with field "cover"
+exports.uploadCover = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const updated = await User.findByIdAndUpdate(
+      req.user._id,
+      { coverImage: url },
+      { new: true }
+    ).select("-password");
+    res.json({ message: "Cover image updated", user: updated });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 // CHANGE PASSWORD
 exports.changePassword = async (req, res) => {
