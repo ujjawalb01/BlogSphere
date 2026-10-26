@@ -1,12 +1,15 @@
-const express = require("express");
-const upload = require("../middleware/upload");
-const uploadController = require("../controllers/uploadController");
+import express from "express";
+import auth from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
+import uploadController from "../controllers/uploadController.js";
 
 const router = express.Router();
 
-const auth = require("../middleware/auth");
+router.post(
+  "/",
+  auth,
+  upload.array("media", 10),
+  uploadController.uploadMedia
+);
 
-// Allow up to 10 files
-router.post("/", auth, upload.array("media", 10), uploadController.uploadMedia);
-
-module.exports = router;
+export default router;

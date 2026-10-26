@@ -1,11 +1,28 @@
-const express = require("express");
-const auth = require("../middleware/auth");
-const notificationController = require("../controllers/notificationController");
+import express from "express";
+import auth from "../middleware/auth.js";
+import notificationController from "../controllers/notificationController.js";
 
 const router = express.Router();
 
-router.get("/", auth, notificationController.getNotifications);
-router.get("/unread/count", auth, notificationController.getUnreadCount);
-router.put("/read", auth, notificationController.markRead);
+// Get notifications
+router.get(
+  "/",
+  auth,
+  notificationController.getNotifications
+);
 
-module.exports = router;
+// Get unread notification count
+router.get(
+  "/unread/count",
+  auth,
+  notificationController.getUnreadCount
+);
+
+// Mark notifications as read
+router.put(
+  "/read",
+  auth,
+  notificationController.markRead
+);
+
+export default router;

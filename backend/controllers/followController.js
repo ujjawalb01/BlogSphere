@@ -1,19 +1,31 @@
-const User = require("../models/User");
+import User from "../models/User.js";
+import createNotification from "../services/notificationService.js";
 
-// FOLLOW USER
-exports.followUser = async (req, res) => {
+const followUser = async (req, res) => {
   try {
-    if (req.user._id.toString() === req.params.id)
-      return res.status(400).json({ message: "You cannot follow yourself" });
-
     const targetUser = await User.findById(req.params.id);
     const currentUser = await User.findById(req.user._id);
 
-    if (!targetUser)
-      return res.status(404).json({ message: "User not found" });
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({
+        message: "You cannot follow yourself"
+      });
+    }
 
-    if (currentUser.following.includes(targetUser._id)) {
-      return res.status(400).json({ message: "Already following" });
+    if (!targetUser) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const alreadyFollowing = currentUser.following.some(
+      (id) => id.toString() === targetUser._id.toString()
+    );
+
+    if (alreadyFollowing) {
+      return res.status(400).json({
+        message: "Already following"
+      });
     }
 
     currentUser.following.push(targetUser._id);
@@ -22,39 +34,64 @@ exports.followUser = async (req, res) => {
     await currentUser.save();
     await targetUser.save();
 
-    const { createNotification } = require("./notificationController");
-    await createNotification(targetUser._id, currentUser._id, "follow", null);
+    await createNotification(
+      targetUser._id,
+      currentUser._id,
+      "follow",
+      null
+    );
 
-    res.json({ message: "Followed successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    return res.json({
+      message: "Followed successfully"
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-
-// UNFOLLOW USER
-exports.unfollowUser = async (req, res) => {
+const unfollowUser = async (req, res) => {
   try {
     const targetUser = await User.findById(req.params.id);
     const currentUser = await User.findById(req.user._id);
 
-    if (!targetUser)
-      return res.status(404).json({ message: "User not found" });
+    if (!targetUser) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
 
-    currentUser.following = currentUser.following.filter(
-      (id) => id.toString() !== targetUser._id.toString()
-    );
+    currentUser.following =
+      currentUser.following.filter(
+        (id) =>
+          id.toString() !== targetUser._id.toString()
+      );
 
-    targetUser.followers = targetUser.followers.filter(
-      (id) => id.toString() !== currentUser._id.toString()
-    );
+    targetUser.followers =
+      targetUser.followers.filter(
+        (id) =>
+          id.toString() !== currentUser._id.toString()
+      );
 
     await currentUser.save();
     await targetUser.save();
 
-    res.json({ message: "Unfollowed successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    return res.json({
+      message: "Unfollowed successfully"
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
+export {
+  followUser,
+  unfollowUser
+};

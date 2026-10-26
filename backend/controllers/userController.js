@@ -1,253 +1,540 @@
-const User = require("../models/User");
-const bcrypt = require("bcrypt");
-const Post = require("../models/Post");
+import bcrypt from "bcrypt";
 
-/* FOLLOW USER */
-exports.followUser = async (req, res) => {
+import User from "../models/User.js";
+import Post from "../models/Post.js";
+
+import createNotification from "../services/notificationService.js";
+import getFileUrl from "../utils/fileUrl.js";
+
+// ===============================
+// FOLLOW USER
+// ===============================
+const followUser = async (req, res) => {
   try {
-    const targetId = req.params.id;
-    const userId = req.user._id;
+    const targetUser = await User.findById(
+      req.params.id
+    );
 
-    if (userId.toString() === targetId)
-      return res.status(400).json({ message: "You can't follow yourself" });
+    const currentUser = await User.findById(
+      req.user._id
+    );
 
-    const targetUser = await User.findById(targetId);
-    const me = await User.findById(userId);
-
-    if (!targetUser) return res.status(404).json({ message: "User not found" });
-
-    if (me.following.includes(targetId)) {
-      return res.status(400).json({ message: "Already following" });
+    if (
+      req.params.id ===
+      req.user._id.toString()
+    ) {
+      return res.status(400).json({
+        message: "You can't follow yourself"
+      });
     }
 
-    me.following.push(targetId);
-    targetUser.followers.push(userId);
+    if (!targetUser) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
 
-    await me.save();
+    const alreadyFollowing =
+      currentUser.following.some(
+        (id) =>
+          id.toString() ===
+          targetUser._id.toString()
+      );
+
+    if (alreadyFollowing) {
+      return res.status(400).json({
+        message: "Already following"
+      });
+    }
+
+    currentUser.following.push(
+      targetUser._id
+    );
+
+    targetUser.followers.push(
+      currentUser._id
+    );
+
+    await currentUser.save();
     await targetUser.save();
 
-    // Send Notification
-    const { createNotification } = require("./notificationController");
-    await createNotification(targetUser._id, req.user._id, "follow", null, "");
+    await createNotification(
+      targetUser._id,
+      currentUser._id,
+      "follow",
+      null,
+      ""
+    );
 
-    res.json({ message: "Followed successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    return res.json({
+      message: "Followed successfully"
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-/* UNFOLLOW USER */
-exports.unfollowUser = async (req, res) => {
+// ===============================
+// UNFOLLOW USER
+// ===============================
+const unfollowUser = async (req, res) => {
   try {
-    const targetId = req.params.id;
-    const userId = req.user._id;
-
-    const targetUser = await User.findById(targetId);
-    const me = await User.findById(userId);
-
-    if (!targetUser) return res.status(404).json({ message: "User not found" });
-
-    me.following = me.following.filter(
-      (u) => u.toString() !== targetId
-    );
-    targetUser.followers = targetUser.followers.filter(
-      (u) => u.toString() !== userId.toString()
+    const targetUser = await User.findById(
+      req.params.id
     );
 
-    await me.save();
+    const currentUser = await User.findById(
+      req.user._id
+    );
+
+    if (!targetUser) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    currentUser.following =
+      currentUser.following.filter(
+        (id) =>
+          id.toString() !==
+          targetUser._id.toString()
+      );
+
+    targetUser.followers =
+      targetUser.followers.filter(
+        (id) =>
+          id.toString() !==
+          currentUser._id.toString()
+      );
+
+    await currentUser.save();
     await targetUser.save();
 
-    res.json({ message: "Unfollowed successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    return res.json({
+      message: "Unfollowed successfully"
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-/* 🔍 SEARCH USERS */
-exports.searchUsers = async (req, res) => {
+// ===============================
+// SEARCH USERS
+// ===============================
+const searchUsers = async (req, res) => {
   try {
-    const q = req.query.q;
-    if (!q || q.trim() === "") return res.json([]);
+    const { q } = req.query;
+
+    if (!q) {
+      return res.json([]);
+    }
 
     const users = await User.find({
       $or: [
-        { username: { $regex: q, $options: "i" } },
-        { name: { $regex: q, $options: "i" } },
-      ],
-    }).select("name username avatar");
+        {
+          username: {
+            $regex: q,
+            $options: "i"
+          }
+        },
+        {
+          name: {
+            $regex: q,
+            $options: "i"
+          }
+        }
+      ]
+    }).select(
+      "name username avatar"
+    );
 
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    return res.json(users);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-//user stats
-
-exports.getUserStats = async (req, res) => {
+// ===============================
+// GET USER STATS
+// ===============================
+const getUserStats = async (req, res) => {
   try {
-    const userId = req.params.id;
+    const user = await User.findById(
+      req.params.id
+    );
 
-    const user = await User.findById(userId).select("followers following");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
 
-    const postCount = await Post.countDocuments({ author: userId });
+    const postCount =
+      await Post.countDocuments({
+        author: req.params.id
+      });
 
-    res.json({
+    return res.json({
       followers: user.followers.length,
       following: user.following.length,
       posts: postCount
     });
+  } catch (error) {
+    console.error(error);
 
-  } catch (err) {
-    console.error(err); 
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-
-// UPDATE ACCOUNT DETAILS
-exports.updateAccount = async (req, res) => {
+// ===============================
+// UPDATE ACCOUNT
+// ===============================
+const updateAccount = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const { name, username, email, avatar, coverImage } = req.body;
+    const {
+      name,
+      username,
+      email,
+      avatar,
+      coverImage
+    } = req.body;
 
     const updates = {};
 
-    if (name) updates.name = name;
-    if (username) updates.username = username;
-    if (email) updates.email = email;
-    if (avatar !== undefined) updates.avatar = avatar;
-    if (coverImage !== undefined) updates.coverImage = coverImage;
+    if (name !== undefined) {
+      updates.name = name;
+    }
 
-    // If updating username, check if taken
+    if (username !== undefined) {
+      updates.username = username;
+    }
+
+    if (email !== undefined) {
+      updates.email = email;
+    }
+
+    if (avatar !== undefined) {
+      updates.avatar = avatar;
+    }
+
+    if (coverImage !== undefined) {
+      updates.coverImage = coverImage;
+    }
+
+    // Check username
     if (username) {
-      const exists = await User.findOne({ username });
-      if (exists && exists._id.toString() !== userId.toString()) {
-        return res.status(400).json({ message: "Username already taken" });
+      const existingUsername =
+        await User.findOne({
+          username,
+          _id: {
+            $ne: req.user._id
+          }
+        });
+
+      if (existingUsername) {
+        return res.status(400).json({
+          message: "Username already exists"
+        });
       }
     }
 
-    // If updating email, check if taken
+    // Check email
     if (email) {
-      const exists = await User.findOne({ email });
-      if (exists && exists._id.toString() !== userId.toString()) {
-        return res.status(400).json({ message: "Email already registered" });
+      const existingEmail =
+        await User.findOne({
+          email,
+          _id: {
+            $ne: req.user._id
+          }
+        });
+
+      if (existingEmail) {
+        return res.status(400).json({
+          message: "Email already exists"
+        });
       }
     }
 
-    const updated = await User.findByIdAndUpdate(userId, updates, { new: true }).select("-password");
+    const updated =
+      await User.findByIdAndUpdate(
+        req.user._id,
+        updates,
+        {
+          new: true
+        }
+      ).select("-password");
 
-    res.json({
+    return res.json({
       message: "Account updated",
       user: updated
     });
+  } catch (error) {
+    console.error(error);
 
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-// UPLOAD AVATAR — expects multipart/form-data with field "avatar"
-exports.uploadAvatar = async (req, res) => {
+// ===============================
+// UPLOAD AVATAR
+// ===============================
+const uploadAvatar = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-    const updated = await User.findByIdAndUpdate(
-      req.user._id,
-      { avatar: url },
-      { new: true }
-    ).select("-password");
-    res.json({ message: "Avatar updated", user: updated });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// UPLOAD COVER IMAGE — expects multipart/form-data with field "cover"
-exports.uploadCover = async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-    const updated = await User.findByIdAndUpdate(
-      req.user._id,
-      { coverImage: url },
-      { new: true }
-    ).select("-password");
-    res.json({ message: "Cover image updated", user: updated });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-// CHANGE PASSWORD
-exports.changePassword = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { oldPassword, newPassword, confirmPassword } = req.body;
-
-    if (!oldPassword || !newPassword || !confirmPassword)
-      return res.status(400).json({ message: "All fields required" });
-
-    if (newPassword !== confirmPassword)
-      return res.status(400).json({ message: "New passwords do not match" });
-
-    const user = await User.findById(userId);
-    const isMatch = await bcrypt.compare(oldPassword, user.password);
-
-    if (!isMatch)
-      return res.status(400).json({ message: "Old password is incorrect" });
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-
-    user.password = hashed;
-    await user.save();
-
-    res.json({ message: "Password updated successfully" });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// GET USER DETAILS
-exports.getUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded"
+      });
     }
 
-    res.json(user);
-  } catch (err) {
-    console.log("GET USER ERROR:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-// GET USER FOLLOWING
-exports.getUserFollowing = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).populate("following", "name username avatar");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user.following);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    const avatarUrl = getFileUrl(
+      req,
+      req.file.filename
+    );
+
+    const user =
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          avatar: avatarUrl
+        },
+        {
+          new: true
+        }
+      ).select("-password");
+
+    return res.json({
+      message: "Avatar updated",
+      user
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-// GET USER FOLLOWERS
-exports.getUserFollowers = async (req, res) => {
+// ===============================
+// UPLOAD COVER
+// ===============================
+const uploadCover = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).populate("followers", "name username avatar");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user.followers);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded"
+      });
+    }
+
+    const coverUrl = getFileUrl(
+      req,
+      req.file.filename
+    );
+
+    const user =
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          coverImage: coverUrl
+        },
+        {
+          new: true
+        }
+      ).select("-password");
+
+    return res.json({
+      message: "Cover image updated",
+      user
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
+};
+
+// ===============================
+// CHANGE PASSWORD
+// ===============================
+const changePassword = async (req, res) => {
+  try {
+    const {
+      currentPassword,
+      newPassword,
+      confirmPassword
+    } = req.body;
+
+    if (
+      !currentPassword ||
+      !newPassword ||
+      !confirmPassword
+    ) {
+      return res.status(400).json({
+        message: "All fields are required"
+      });
+    }
+
+    if (
+      newPassword !== confirmPassword
+    ) {
+      return res.status(400).json({
+        message: "Passwords do not match"
+      });
+    }
+
+    const user = await User.findById(
+      req.user._id
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const isMatch =
+      await bcrypt.compare(
+        currentPassword,
+        user.password
+      );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Current password is incorrect"
+      });
+    }
+
+    const hashedPassword =
+      await bcrypt.hash(
+        newPassword,
+        10
+      );
+
+    user.password = hashedPassword;
+
+    await user.save();
+
+    return res.json({
+      message: "Password updated successfully"
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+
+// ===============================
+// GET USER
+// ===============================
+const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(
+      req.params.id
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+
+// ===============================
+// GET FOLLOWING
+// ===============================
+const getUserFollowing = async (req, res) => {
+  try {
+    const user = await User.findById(
+      req.params.id
+    ).populate(
+      "following",
+      "name username avatar"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    return res.json(user.following);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+
+// ===============================
+// GET FOLLOWERS
+// ===============================
+const getUserFollowers = async (req, res) => {
+  try {
+    const user = await User.findById(
+      req.params.id
+    ).populate(
+      "followers",
+      "name username avatar"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    return res.json(user.followers);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+
+export {
+  followUser,
+  unfollowUser,
+  searchUsers,
+  getUserFollowers,
+  getUserFollowing,
+  uploadAvatar,
+  uploadCover,
+  getUserStats,
+  updateAccount,
+  changePassword,
+  getUser
 };

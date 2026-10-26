@@ -1,10 +1,10 @@
-const express = require("express");
-const auth = require("../middleware/auth");
-const { followUser, unfollowUser } = require("../controllers/followController");
+import express from "express";
+import { followUser, unfollowUser } from "../controllers/followController.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
 router.post("/:id/follow", auth, followUser);
 router.post("/:id/unfollow", auth, unfollowUser);
 
-module.exports = router;
+export default router;

@@ -1,82 +1,248 @@
-require("dotenv").config();
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const path = require("path");
+import dotenv from "dotenv";
+dotenv.config();
 
-const authRoutes = require("./routes/auth");
-const postRoutes = require("./routes/posts");
-const uploadRoutes = require("./routes/upload");
-const userRoutes = require("./routes/user");
-const followRoutes = require("./routes/follow");
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import path from "path";
+import http from "http";
 
+import { fileURLToPath } from "url";
 
+import { Server } from "socket.io";
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+// Routes
+import userRoutes from "./routes/user.js";
+import authRoutes from "./routes/auth.js";
+import postRoutes from "./routes/posts.js";
+import uploadRoutes from "./routes/upload.js";
+import followRoutes from "./routes/follow.js";
+import messageRoutes from "./routes/messages.js";
+import notificationRoutes from "./routes/notifications.js";
+
+// Middleware
+import errorHandler from "./middleware/errorHandler.js";
+
+// ===============================
+// __dirname for ES Modules
+// ===============================
+
+const __filename = fileURLToPath(
+  import.meta.url
+);
+
+const __dirname =
+  path.dirname(__filename);
+
+// ===============================
+// Environment validation
+// ===============================
 
 if (!process.env.MONGODB_URI) {
-  console.error("ERROR: MONGODB_URI is not set in .env. Please add it (see .env.example).");
+  console.error(
+    "MONGODB_URI is missing"
+  );
+
   process.exit(1);
 }
+
 if (!process.env.JWT_SECRET) {
-  console.error("ERROR: JWT_SECRET is not set in .env. Please add it.");
+  console.error(
+    "JWT_SECRET is missing"
+  );
+
   process.exit(1);
 }
 
-const { createServer } = require("http");
-const { Server } = require("socket.io");
+// ===============================
+// Express
+// ===============================
 
-const server = createServer(app);
+const app = express();
+
+const server =
+  http.createServer(app);
+
+// ===============================
+// Socket.IO
+// ===============================
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin:
+      process.env.CLIENT_URL ||
+      "http://localhost:5173",
+
+    methods: [
+      "GET",
+      "POST"
+    ]
   }
 });
+
+// Make Socket.IO available globally
 global.io = io;
 
-// Socket.io Events
+// ===============================
+// Socket events
+// ===============================
+
 io.on("connection", (socket) => {
-  console.log(`User Connected: ${socket.id}`);
+  console.log(
+    "Socket connected:",
+    socket.id
+  );
 
-  socket.on("join_room", (userId) => {
-    socket.join(userId);
-    console.log(`User joined room: ${userId}`);
-  });
+  // Join user's room
+  socket.on(
+    "join_room",
+    (userId) => {
+      socket.join(
+        userId.toString()
+      );
+    }
+  );
 
-  socket.on("send_message", (data) => {
-    // data: { senderId, receiverId, text, ... }
-    io.to(data.receiverId).emit("receive_message", data);
-  });
+  // Send message
+  socket.on(
+    "send_message",
+    (data) => {
+      if (
+        data &&
+        data.receiver
+      ) {
+        io
+          .to(
+            data.receiver.toString()
+          )
+          .emit(
+            "newMessage",
+            data
+          );
+      }
+    }
+  );
 
-  socket.on("disconnect", () => {
-    console.log("User Disconnected", socket.id);
-  });
+  socket.on(
+    "disconnect",
+    () => {
+      console.log(
+        "Socket disconnected:",
+        socket.id
+      );
+    }
+  );
 });
 
+// ===============================
+// CORS
+// ===============================
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
-app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/api/user", userRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/posts", postRoutes);
-app.use("/api/upload", uploadRoutes);
-app.use("/api/follow", followRoutes);
-app.use("/api/messages", require("./routes/messages"));
-app.use("/api/notifications", require("./routes/notifications"));
+app.use(
+  cors({
+    origin:
+      process.env.CLIENT_URL ||
+      "http://localhost:5173"
+  })
+);
 
-const start = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, { });
-    console.log("Connected to MongoDB");
-    // Use server.listen instead of app.listen
-    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  } catch (err) {
-    console.error("Failed to start server:", err);
+// ===============================
+// Body parser
+// ===============================
+
+app.use(
+  express.json()
+);
+
+// ===============================
+// Static uploads
+// ===============================
+
+app.use(
+  "/uploads",
+  express.static(
+    path.join(
+      __dirname,
+      "uploads"
+    )
+  )
+);
+
+// ===============================
+// API routes
+// ===============================
+
+app.use(
+  "/api/user",
+  userRoutes
+);
+
+app.use(
+  "/api/auth",
+  authRoutes
+);
+
+app.use(
+  "/api/posts",
+  postRoutes
+);
+
+app.use(
+  "/api/upload",
+  uploadRoutes
+);
+
+app.use(
+  "/api/follow",
+  followRoutes
+);
+
+app.use(
+  "/api/messages",
+  messageRoutes
+);
+
+app.use(
+  "/api/notifications",
+  notificationRoutes
+);
+
+// ===============================
+// Error handler
+// ===============================
+
+app.use(errorHandler);
+
+// ===============================
+// MongoDB connection
+// ===============================
+
+mongoose
+  .connect(
+    process.env.MONGODB_URI
+  )
+  .then(() => {
+    console.log(
+      "MongoDB connected"
+    );
+
+    const PORT =
+      process.env.PORT || 5000;
+
+    server.listen(
+      PORT,
+      () => {
+        console.log(
+          `Server running on port ${PORT}`
+        );
+      }
+    );
+  })
+  .catch((error) => {
+    console.error(
+      "MongoDB connection error:",
+      error
+    );
+
     process.exit(1);
-  }
-};
-
-start();
+  });

@@ -1,27 +1,79 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const CommentSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  text: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
+const commentSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
 
-const PostSchema = new mongoose.Schema({
-  author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  title: String,
-  content: String,
-  
-  // Changed from single mediaUrl/mediaType to array of objects
-  media: [
-    {
-      url: { type: String, required: true },
-      type: { type: String, enum: ["image", "video"], required: true }
+    text: {
+      type: String,
+      required: true
+    },
+
+    createdAt: {
+      type: Date,
+      default: Date.now
     }
-  ],
+  }
+);
 
-  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  comments: [CommentSchema]
+const postSchema = new mongoose.Schema(
+  {
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
 
-}, { timestamps: true });
+    title: {
+      type: String,
+      required: true
+    },
 
-module.exports = mongoose.model("Post", PostSchema);
+    content: {
+      type: String
+    },
+
+    media: [
+      {
+        url: {
+          type: String,
+          required: true
+        },
+
+        type: {
+          type: String,
+          enum: [
+            "image",
+            "video"
+          ],
+          required: true
+        }
+      }
+    ],
+
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      }
+    ],
+
+    comments: [
+      commentSchema
+    ]
+  },
+  {
+    timestamps: true
+  }
+);
+
+const Post = mongoose.model(
+  "Post",
+  postSchema
+);
+
+export default Post;

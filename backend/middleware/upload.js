@@ -1,19 +1,55 @@
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Same location as the original CommonJS version
 const uploadDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
+// Create uploads directory if it doesn't exist
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, {
+    recursive: true
+  });
+}
+
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) { cb(null, uploadDir); },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const name = Date.now() + "-" + Math.round(Math.random() * 1E9);
-    cb(null, name + ext);
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+
+  filename: (req, file, cb) => {
+    const uniqueName =
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
+
+    cb(null, uniqueName);
   }
 });
+
 const fileFilter = (req, file, cb) => {
-  if (/image|video/.test(file.mimetype)) cb(null, true);
-  else cb(new Error("Only image and video files are allowed"), false);
+  if (/image|video/.test(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error("Only image and video files are allowed"),
+      false
+    );
+  }
 };
-const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 1024 } });
-module.exports = upload;
+
+const upload = multer({
+  storage,
+  fileFilter,
+
+  limits: {
+    fileSize: 50 * 1024 * 1024
+  }
+});
+
+export default upload;

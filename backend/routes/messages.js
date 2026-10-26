@@ -1,12 +1,42 @@
-const express = require("express");
+import express from "express";
+import auth from "../middleware/auth.js";
+import messageController from "../controllers/messageController.js";
+
 const router = express.Router();
-const auth = require("../middleware/auth");
-const messageController = require("../controllers/messageController");
 
-router.get("/conversations", auth, messageController.getConversations);
-router.get("/unread/count", auth, messageController.getUnreadCount);
-router.get("/:userId", auth, messageController.getMessages);
-router.put("/read", auth, messageController.markMessagesRead);
-router.post("/", auth, messageController.createMessage);
+// Get conversations
+router.get(
+  "/conversations",
+  auth,
+  messageController.getConversations
+);
 
-module.exports = router;
+// Get unread message count
+router.get(
+  "/unread/count",
+  auth,
+  messageController.getUnreadCount
+);
+
+// Get messages with a specific user
+router.get(
+  "/:userId",
+  auth,
+  messageController.getMessages
+);
+
+// Mark messages as read
+router.put(
+  "/read",
+  auth,
+  messageController.markMessagesRead
+);
+
+// Create message
+router.post(
+  "/",
+  auth,
+  messageController.createMessage
+);
+
+export default router;
