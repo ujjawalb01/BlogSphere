@@ -1,24 +1,31 @@
+
 import express from "express";
 
 import {
   register,
+  verifyEmail,
+  resendOTP,
   login,
   forgotPassword,
-  resetPassword
+  verifyResetOTP,
+  resetPassword,
+  logout,
 } from "../controllers/authController.js";
 
 const router = express.Router();
 
-// Register
+// Registration and email verification
 router.post("/register", register);
+router.post("/verify-email", verifyEmail);
+router.post("/resend-otp", resendOTP);
 
-// Login
+// Login and logout
 router.post("/login", login);
+router.post("/logout", logout);
 
-// Forgot password
-router.post("/forgotpassword", forgotPassword);
-
-// Reset password
-router.put("/resetpassword/:resetToken", resetPassword);
+// Forgot password and OTP verification
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-reset-otp", verifyResetOTP);
+router.post("/reset-password", resetPassword);
 
 export default router;

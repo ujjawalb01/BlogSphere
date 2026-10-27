@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -5,7 +6,12 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
 
     email: {
@@ -13,59 +19,55 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      trim: true
+      trim: true,
     },
 
     username: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true
+      lowercase: true,
+      trim: true,
     },
 
     password: {
       type: String,
-      required: true
+      required: true,
+    },
+
+    // Invalidates existing JWT sessions when incremented.
+    tokenVersion: {
+      type: Number,
+      default: 0,
     },
 
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
+        ref: "User",
+      },
     ],
 
     following: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
+        ref: "User",
+      },
     ],
 
     avatar: {
-      type: String
+      type: String,
     },
 
     coverImage: {
-      type: String
+      type: String,
     },
-
-    resetPasswordToken: {
-      type: String
-    },
-
-    resetPasswordExpire: {
-      type: Date
-    }
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
-const User = mongoose.model(
-  "User",
-  userSchema
-);
+const User = mongoose.model("User", userSchema);
 
 export default User;

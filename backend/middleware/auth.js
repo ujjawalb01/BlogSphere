@@ -1,17 +1,17 @@
+
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 const auth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    // Read JWT from the HTTP-only cookie.
+    const token = req.cookies?.token;
 
-    if (!authHeader) {
+    if (!token) {
       return res.status(401).json({
-        message: "No token"
+        message: "Authentication required",
       });
     }
-
-    const token = authHeader.split(" ")[1];
 
     const payload = jwt.verify(
       token,
@@ -22,7 +22,22 @@ const auth = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({
-        message: "Invalid token"
+        message: "Invalid authentication",
+      });
+    }
+
+    // Reject JWTs issued before the user's token version changed.
+    if (
+      payload.tokenVersion !== user.tokenVersion
+    ) {
+      return res.status(401).json({
+        message: "Session expired. Please log in again.",
+      });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message: "Please verify your email first.",
       });
     }
 
@@ -30,11 +45,19 @@ const auth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error(error);
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        message: "Session expired. Please log in again.",
+      });
+    }
 
-    return res.status(401).json({
-      message: "Unauthorized"
-    });
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        message: "Invalid authentication",
+      });
+    }
+
+    next(error);
   }
 };
 
