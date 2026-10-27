@@ -1,16 +1,30 @@
 
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+let transporter;
+
+const getTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    const error = new Error("Email delivery is not configured");
+    error.code = "EMAIL_CONFIG_MISSING";
+    throw error;
+  }
+
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+  }
+
+  return transporter;
+};
 
 export const verifyEmailConnection = async () => {
-  await transporter.verify();
+  await getTransporter().verify();
   console.log("Email service connected successfully.");
 };
 
@@ -33,14 +47,15 @@ export const sendOTPEmail = async (email, otp, purpose) => {
     ? "Verify your email"
     : "Reset your password";
 
-  await transporter.sendMail({
-    from: `"BlogSphere" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject,
+  try {
+    await getTransporter().sendMail({
+      from: `"BlogSphere" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject,
 
-    text: `Your BlogSphere verification code is ${otp}. It expires in 5 minutes. Do not share it with anyone.`,
+      text: `Your BlogSphere verification code is ${otp}. It expires in 5 minutes. Do not share it with anyone.`,
 
-    html: `
+      html: `
       <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:30px;">
         <h2>${heading}</h2>
 
@@ -59,6 +74,13 @@ export const sendOTPEmail = async (email, otp, purpose) => {
           If you did not request this code, you can ignore this email.
         </p>
       </div>
-    `,
-  });
+      `,
+    });
+  } catch (cause) {
+    if (cause.code === "EMAIL_CONFIG_MISSING") throw cause;
+    const error = new Error("Email delivery failed");
+    error.code = "EMAIL_DELIVERY_FAILED";
+    error.cause = cause;
+    throw error;
+  }
 };

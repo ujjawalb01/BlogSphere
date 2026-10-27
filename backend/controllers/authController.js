@@ -1,7 +1,5 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
-import nodemailer from "nodemailer";
 
 import User from "../models/User.js";
 import OtpChallenge from "../models/OtpChallenge.js";
@@ -15,7 +13,7 @@ import {
 } from "../utils/security.js";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
-const OTP_RESEND_DELAY_MS = 60 * 1000;
+const OTP_RESEND_DELAY_MS = 30 * 1000;
 
 const issueOTP = async (email, purpose) => {
   const otp = generateOTP();
@@ -33,7 +31,22 @@ const issueOTP = async (email, purpose) => {
     } },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
-  await sendOTPEmail(email, otp, purpose);
+  try {
+    await sendOTPEmail(email, otp, purpose);
+  } catch (error) {
+    await OtpChallenge.deleteOne({ email, purpose, otpHash: hashOTP(otp) });
+    throw error;
+  }
+};
+
+const sendEmailFailure = (res, error, accountCreated = false) => {
+  const missingConfig = error.code === "EMAIL_CONFIG_MISSING";
+  return res.status(503).json({
+    message: missingConfig
+      ? "The server email service is not configured. Add EMAIL_USER and EMAIL_PASS, then send the code again."
+      : "The verification email could not be sent. Check the server email settings and try again.",
+    ...(accountCreated ? { accountCreated: true } : {}),
+  });
 };
 
 const setAuthCookie = (res, token) => {
@@ -81,9 +94,23 @@ const register = async (req, res) => {
     });
 
     if (existingEmail) {
-      return res.status(400).json({
-        message: "Email already exists"
-      });
+      if (existingEmail.isVerified) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      try {
+        await issueOTP(existingEmail.email, "register");
+        return res.status(200).json({
+          accountCreated: true,
+          message: "A new verification code was sent to your email.",
+        });
+      } catch (error) {
+        console.error("Registration OTP delivery failed:", error);
+        if (error.code === "EMAIL_CONFIG_MISSING" || error.code === "EMAIL_DELIVERY_FAILED") {
+          return sendEmailFailure(res, error, true);
+        }
+        throw error;
+      }
     }
 
     // Check username
@@ -113,7 +140,16 @@ const register = async (req, res) => {
     });
 
     await user.save();
-    await issueOTP(user.email, "register");
+
+    try {
+      await issueOTP(user.email, "register");
+    } catch (error) {
+      console.error("Registration OTP delivery failed:", error);
+      if (error.code === "EMAIL_CONFIG_MISSING" || error.code === "EMAIL_DELIVERY_FAILED") {
+        return sendEmailFailure(res, error, true);
+      }
+      throw error;
+    }
 
     // Generate JWT
     const token = jwt.sign(
@@ -137,10 +173,10 @@ const register = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
-    return res.status(500).json({
-      message: "Server error"
-    });
+    if (error.code === "EMAIL_CONFIG_MISSING" || error.code === "EMAIL_DELIVERY_FAILED") {
+      return sendEmailFailure(res, error);
+    }
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -228,77 +264,24 @@ const login = async (req, res) => {
 // ===============================
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
 
-    const user = await User.findOne({
-      email
-    });
-
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Generate reset token
-    const resetToken =
-      crypto.randomBytes(20).toString("hex");
-
-    // Hash token before saving
-    user.resetPasswordToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
-
-    // Token expires in 10 minutes
-    user.resetPasswordExpire =
-      Date.now() + 10 * 60 * 1000;
-
-    await user.save();
-
-    const resetUrl =
-      `${process.env.CLIENT_URL}/resetpassword/${resetToken}`;
-
-    // If SMTP configured, send email
-    if (process.env.SMTP_HOST) {
-      const transporter =
-        nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT,
-          secure:
-            process.env.SMTP_SECURE === "true",
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        });
-
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM,
-        to: user.email,
-        subject: "Password Reset",
-        text: `Reset your password using this link: ${resetUrl}`
-      });
-    } else {
-      // Development fallback
-      console.log(
-        "Password Reset URL:",
-        resetUrl
-      );
-    }
-
-    return res.json({
-      success: true,
-      data: "Password reset link sent"
-    });
+    await issueOTP(email, "forgot-password");
+    return res.json({ success: true, message: "Verification code sent to your email" });
   } catch (error) {
     console.error(error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
+    if (error.code === "EMAIL_CONFIG_MISSING" || error.code === "EMAIL_DELIVERY_FAILED") {
+      return sendEmailFailure(res, error);
+    }
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -307,56 +290,35 @@ const forgotPassword = async (req, res) => {
 // ===============================
 const resetPassword = async (req, res) => {
   try {
-    const resetPasswordToken =
-      crypto
-        .createHash("sha256")
-        .update(req.params.resetToken)
-        .digest("hex");
+    const { password, resetToken } = req.body;
+    if (!password || !resetToken) {
+      return res.status(400).json({ success: false, message: "Password and reset token are required" });
+    }
 
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: {
-        $gt: Date.now()
-      }
+    const challenge = await OtpChallenge.findOne({
+      purpose: "forgot-password",
+      resetTokenHash: hashToken(resetToken),
+      verifiedAt: { $ne: null },
+      resetTokenExpiresAt: { $gt: new Date() },
     });
+    if (!challenge) {
+      return res.status(400).json({ success: false, message: "Invalid or expired reset token" });
+    }
 
+    const user = await User.findOne({ email: challenge.email });
     if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired token"
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const { password } = req.body;
-
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        message: "Password is required"
-      });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-
-    user.password =
-      await bcrypt.hash(password, salt);
-
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-
+    user.password = await bcrypt.hash(password, 10);
+    user.tokenVersion += 1;
     await user.save();
+    await OtpChallenge.deleteOne({ _id: challenge._id });
 
-    return res.json({
-      success: true,
-      data: "Password updated success"
-    });
+    return res.json({ success: true, message: "Password updated successfully" });
   } catch (error) {
     console.error(error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -401,6 +363,9 @@ const resendOTP = async (req, res) => {
     return res.json({ success: true, message: "Verification code sent" });
   } catch (error) {
     console.error(error);
+    if (error.code === "EMAIL_CONFIG_MISSING" || error.code === "EMAIL_DELIVERY_FAILED") {
+      return sendEmailFailure(res, error);
+    }
     return res.status(500).json({ message: "Server error" });
   }
 };

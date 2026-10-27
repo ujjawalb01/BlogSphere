@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BiUserPlus, BiArrowBack } from "react-icons/bi";
 import API from "../api";
@@ -7,7 +7,16 @@ export default function Register() {
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [resendSeconds, setResendSeconds] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return undefined;
+    const timer = window.setTimeout(() => setResendSeconds((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -15,11 +24,14 @@ export default function Register() {
     setErrorMsg("");
 
     try {
-      const res = await API.post("/auth/register", form);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/");
+      await API.post("/auth/register", form);
+      setOtpStep(true);
+      setResendSeconds(30);
     } catch (err) {
+      if (err.response?.data?.accountCreated) {
+        setOtpStep(true);
+        setResendSeconds(0);
+      }
       setErrorMsg(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
@@ -48,6 +60,46 @@ export default function Register() {
             </div>
           )}
 
+          {otpStep ? (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              setErrorMsg("");
+              try {
+                const res = await API.post("/auth/verify-email", { email: form.email, otp });
+                localStorage.setItem("token", res.data.token);
+                localStorage.setItem("user", JSON.stringify(res.data.user));
+                navigate("/");
+              } catch (err) {
+                setErrorMsg(err.response?.data?.message || "Verification failed. Check the code and try again.");
+              } finally {
+                setLoading(false);
+              }
+            }} className="space-y-4">
+              <p className="text-xs text-[var(--ink-secondary)]">Enter the 6-digit verification code sent to <span className="font-semibold text-[var(--ink)]">{form.email}</span>.</p>
+              <div>
+                <label className="block text-xs font-mono text-[var(--ink-muted)] uppercase tracking-wider mb-1.5">Verification Code</label>
+                <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required placeholder="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} className="editorial-input" />
+              </div>
+              <button type="submit" disabled={loading || otp.length !== 6} className="btn-primary-editorial w-full py-3 text-sm disabled:opacity-50">
+                {loading ? "Verifying..." : "Verify Email"}
+              </button>
+              <button type="button" disabled={loading || resendSeconds > 0} onClick={async () => {
+                setLoading(true);
+                setErrorMsg("");
+                try {
+                  await API.post("/auth/resend-otp", { email: form.email, purpose: "register" });
+                  setResendSeconds(30);
+                } catch (err) {
+                  setErrorMsg(err.response?.data?.message || "Could not resend the code. Please try again.");
+                } finally {
+                  setLoading(false);
+                }
+              }} className="w-full text-xs text-[var(--accent)] hover:underline disabled:cursor-not-allowed disabled:opacity-50">
+                {resendSeconds > 0 ? "Send again in " + resendSeconds + "s" : "Send OTP again"}
+              </button>
+            </form>
+          ) : (
           <form onSubmit={submit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -122,6 +174,7 @@ export default function Register() {
               )}
             </button>
           </form>
+          )}
 
           <p className="mt-8 text-center text-xs text-[var(--ink-muted)]">
             Already have an account?{" "}
