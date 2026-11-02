@@ -67,9 +67,12 @@ npm install
 Create a `.env` file in the `backend` directory:
 ```env
 PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key_here
+MONGODB_URI=your_mongodb_connection_string_here
+JWT_SECRET=replace_with_a_long_secret
 CLIENT_URL=http://localhost:5173
+OTP_SECRET=your_long_random_otp_secret
+EMAIL_USER=yourgmail@gmail.com
+EMAIL_PASS=your_gmail_app_password
 ```
 
 Start the server:
